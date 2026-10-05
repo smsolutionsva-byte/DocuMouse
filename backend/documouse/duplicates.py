@@ -36,3 +36,17 @@ def find_duplicates(session: Session, doc: Document) -> list[dict]:
         if same_party and doc.total and doc.total == other.total and doc.doc_date and doc.doc_date == other.doc_date:
             found.append({"id": other.id, "filename": other.filename, "reason": "Same vendor, date and total"})
     return found
+
+
+def link_duplicates(session: Session, doc: Document) -> None:
+    """Flag ``doc`` and every earlier look-alike, so both sides show the warning."""
+    found = find_duplicates(session, doc)
+    doc.duplicate_of = found or None
+    for match in found:
+        other = session.get(Document, match["id"])
+        if other is None:
+            continue
+        existing = list(other.duplicate_of or [])
+        if not any(d["id"] == doc.id for d in existing):
+            # Reassign (not append) so the JSON column is marked as changed.
+            other.duplicate_of = existing + [{"id": doc.id, "filename": doc.filename, "reason": match["reason"]}]

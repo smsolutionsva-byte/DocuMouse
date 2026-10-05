@@ -26,8 +26,11 @@ dependencies = [
 # The document engine. Kept optional so the API, tests and frontend can be
 # developed on machines where PaddlePaddle wheels are not available.
 ocr = [
-  "paddlepaddle>=3.0",
-  "paddleocr[doc-parser]>=3.3",
+  # PaddlePaddle 3.3.x fails CPU inference with oneDNN enabled
+  # ("ConvertPirAttribute2RuntimeAttribute not support"), and with oneDNN off it is ~4x slower.
+  # 3.2.2 is the newest release that works; revisit when upstream fixes it.
+  "paddlepaddle==3.2.2",
+  "paddleocr[doc-parser]>=3.7,<4",
 ]
 dev = [
   "pytest>=8",

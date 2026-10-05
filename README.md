@@ -11,9 +11,9 @@ Under the hood, [PaddleOCR](https://github.com/PaddlePaddle/PaddleOCR)'s **PP-St
 all the low-level reading (layout, text, reading order, tables). DocuMouse adds classification, field
 extraction, deterministic validation, a review screen, versioned editing and export on top.
 
-> **Status: early MVP.** The first vertical slice works end to end:
-> upload → PaddleOCR → classification → invoice/receipt extraction → validation → review → edit → approve → CSV.
-> See [What works today](#what-works-today) and [Roadmap](#roadmap).
+> **Status: early MVP.** The first vertical slice works end to end with the real PaddleOCR engine:
+> upload → PP-StructureV3 → classification → invoice/receipt extraction → validation → review → edit → approve → CSV.
+> See [What works today](#what-works-today), [Try it](#try-it-with-the-sample-documents) and [Roadmap](#roadmap).
 
 ---
 
@@ -24,7 +24,7 @@ extraction, deterministic validation, a review screen, versioned editing and exp
 | Upload | Drag-and-drop anywhere on the page, multiple files, PDF / JPG / PNG / WebP / TIFF, per-file progress through *Uploading → Reading → Understanding → Extracting → Checking → Ready for review* |
 | Reading | PaddleOCR 3.x **PP-StructureV3**: orientation, layout, text detection/recognition, reading order, table recognition |
 | Classification | Invoice / receipt / other, with confidence and reasons. Asks you when unsure; warns if your pick looks wrong ("This looks more like a receipt than an invoice") |
-| Extraction | Invoices: vendor, number, dates, currency, subtotal, discount, tax, CGST/SGST/IGST, total, GSTIN, billed-to, line items. Receipts: merchant, date, time, payment method, currency, amounts. Missing values stay **Not detected**, never invented |
+| Extraction | Invoices: vendor, number, dates, currency, subtotal, discount, tax, CGST/SGST/IGST, total, GSTIN, billed-to, line items. Receipts: merchant, date, time, payment method, currency, amounts, GST, line items (also when the receipt has no ruled table). Missing values stay **Not detected**, never invented. Day/month order is settled from the page (e.g. a `25/09` elsewhere) or the currency's convention, otherwise you're asked |
 | Validation | Deterministic: amount/date/currency formats, GSTIN checksum, *subtotal − discount + taxes = total*, CGST = SGST, `qty × price = amount` per row, rows add up to the subtotal. Nothing is auto-"fixed" |
 | Review | Original document beside the extracted data. Selecting a field or row highlights where it came from. Uncertain fields are marked with the reason |
 | Tables | Spreadsheet-like editing: edit cells, add/delete/merge rows, rename/move/insert/delete columns, split and merge columns (with a live preview), split tables, mark total rows |
@@ -116,8 +116,12 @@ Or use the `Makefile`: `make db`, `make backend-install`, `make backend`, `make 
 
 ### PaddleOCR / PP-StructureV3 notes
 
-- DocuMouse uses PaddleOCR **3.x** (`paddleocr[doc-parser]`) with **PaddlePaddle 3.x**. The CPU wheel comes
-  from PyPI. For NVIDIA GPUs, install `paddlepaddle-gpu` following the
+- DocuMouse uses PaddleOCR **3.7** (`paddleocr[doc-parser]`) with **PaddlePaddle 3.2.2** (pinned). PaddlePaddle 3.3.x
+  breaks CPU inference with oneDNN, the Linux default
+  (`ConvertPirAttribute2RuntimeAttribute not support`, see
+  [PaddleOCR#17539](https://github.com/PaddlePaddle/PaddleOCR/issues/17539)). With oneDNN switched off
+  (`DOCUMOUSE_OCR_ENABLE_MKLDNN=false`) 3.3.x works but was about 4× slower in our tests.
+- The CPU wheel comes from PyPI. For NVIDIA GPUs, install `paddlepaddle-gpu` following the
   [PaddlePaddle install guide](https://www.paddlepaddle.org.cn/en/install/quick), then set `DOCUMOUSE_OCR_DEVICE=gpu:0`.
 - **Models download on first use** (layout, text detection/recognition, table models) into `~/.paddlex/official_models`.
   The default source is Hugging Face (`huggingface.co`). Set `PADDLE_PDX_MODEL_SOURCE` to `modelscope`, `aistudio` or `bos`
@@ -125,8 +129,21 @@ Or use the `Makefile`: `make db`, `make backend-install`, `make backend`, `make 
   *"DocuMouse's reading engine isn't available right now"* and the technical reason is shown to whoever runs DocuMouse.
 - `DOCUMOUSE_OCR_PRESET=fast` (default) swaps in the PP-OCRv5 **mobile** text models, which are much quicker on CPU.
   `accurate` uses PP-StructureV3's server models. Formula, chart and seal recognition are turned off: invoices don't need them.
-- Expect several seconds to a minute per page on CPU, depending on the machine. Processing runs in the background.
-  Leaving the page doesn't stop it.
+- Measured on a 4-core CPU (fast preset, PaddlePaddle 3.2.2): ~8 s for a scanned A4 invoice, ~2 s for a till receipt,
+  plus ~10 s once to load the models. The first run also downloads them (~0.9 GB). Processing runs in the background,
+  and leaving the page doesn't stop it.
+- PP-StructureV3's per-table orientation check is turned off: pages are already straightened, and on small
+  borderless tables (a totals block) it returned the table rotated 180°.
+
+### Try it with the sample documents
+
+`backend/tests/samples/` has a synthetic GST invoice (PDF), a skewed "scanned" copy of it (JPG) and a café receipt
+(PNG). Regenerate them with `python tests/samples/make_samples.py`. Drop them on the home page: all three should come
+back with every field verified, all math checks passing, and the scan flagged as a duplicate of the PDF.
+
+`backend/tests/fixtures_real/` holds what PaddleOCR actually returned for these files. `test_real_engine_output.py`
+runs the extractor against it, so `pytest` checks behaviour on real engine output without needing the models.
+Re-record with `python tests/record_engine_output.py` after upgrading PaddleOCR.
 
 ### Optional: an LLM
 
@@ -157,18 +174,21 @@ All backend settings use the `DOCUMOUSE_` prefix. See [`backend/.env.example`](b
 | `DOCUMOUSE_OCR_PRESET` | `fast` | `fast` (mobile text models) or `accurate` |
 | `DOCUMOUSE_OCR_LANG` | `en` | Recognition language for the `accurate` preset |
 | `DOCUMOUSE_OCR_DEVICE` | auto | `cpu`, `gpu:0`, … |
+| `DOCUMOUSE_OCR_ENABLE_MKLDNN` | PaddleOCR default | Set `false` if you must run PaddlePaddle 3.3.x on CPU |
 | `DOCUMOUSE_PROCESSING_WORKERS` | `1` | Documents processed in parallel |
 | `DOCUMOUSE_LLM_PROVIDER` | `none` | `groq`, `openrouter`, `ollama`, `lmstudio`, `openai_compatible` |
 | `DOCUMOUSE_LLM_MODEL` / `_API_KEY` / `_BASE_URL` | – | LLM connection |
 | `PADDLE_PDX_MODEL_SOURCE` | `huggingface` | PaddleOCR model download host |
+| `PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK` | – | `True` skips the host check at startup once models are downloaded |
 | `DOCUMOUSE_API_URL` (frontend) | `http://localhost:8000` | Where Next.js proxies `/api` |
 
 ## Roadmap
 
 Built deliberately small. Next up, roughly in order:
 
-- [ ] Run the full pipeline against a corpus of real invoices and receipts and tune the extractor
-- [ ] Receipt line items when PP-StructureV3 doesn't detect a table (column-aligned text)
+- [x] Run the real PaddleOCR pipeline end to end (PDF, scan, receipt) and tune the extractor on its output
+- [x] Receipt line items when PP-StructureV3 doesn't detect a table
+- [ ] Tune on a broader set of real-world invoices and receipts (different layouts, languages, photo quality)
 - [ ] Authentication and per-user workspaces (currently **single-user, no login**: run it locally or behind your own auth)
 - [ ] Alembic migrations (tables are created on startup today)
 - [ ] XLSX / JSON export

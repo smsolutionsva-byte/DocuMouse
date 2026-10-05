@@ -38,7 +38,8 @@ _AMOUNT_RE = re.compile(
     r"(?P<neg>[-−(])?\s*"
     r"(?P<cur>₹|€|£|\$|¥|Rs\.?|INR|USD|EUR|GBP)?\s*"
     r"(?P<num>\d{1,3}(?:[,.\s]\d{2,3})+(?:[.,]\d{1,2})?|\d+(?:[.,]\d{1,2})?)"
-    r"(?![\w%])",
+    # Not part of a longer number ("2" out of "2.5"), and not a percentage ("9%", "2.5 %").
+    r"(?![\w%]|[.,]\d|\s*%)",
     re.IGNORECASE,
 )
 
@@ -98,8 +99,13 @@ class AmountMatch:
     end: int
 
 
+_PERCENT_RE = re.compile(r"\d+(?:[.,]\d+)?\s*%")
+
+
 def find_amounts(text: str) -> list[AmountMatch]:
     out: list[AmountMatch] = []
+    # Rates like "CGST @ 2.5%" are never the amount; blank them out (keeping positions).
+    text = _PERCENT_RE.sub(lambda m: " " * len(m.group(0)), text)
     for m in _AMOUNT_RE.finditer(text):
         num = m.group("num")
         value = parse_amount(num)
@@ -232,6 +238,27 @@ def find_dates(text: str, *, dayfirst: bool = True) -> list[DateMatch]:
             out.append(DateMatch(value=value, raw=m.group(0).strip(), ambiguous=ambiguous, start=m.start(), end=m.end()))
     out.sort(key=lambda d: d.start)
     return out
+
+
+DAYFIRST_CURRENCIES = {
+    "INR", "GBP", "EUR", "AUD", "NZD", "ZAR", "SGD", "AED", "SAR", "HKD", "MYR", "IDR", "THB",
+    "BRL", "MXN", "TRY", "RUB", "VND", "BDT", "LKR", "NPR", "PKR", "KES", "NGN", "EGP", "CHF",
+}
+_NUMERIC_DATE_RE = re.compile(r"\b(\d{1,2})[-/.](\d{1,2})[-/.](\d{4}|\d{2})\b")
+
+
+def numeric_date_order(text: str) -> str | None:
+    """'dayfirst' / 'monthfirst' if some date on the page settles it (e.g. 25/09/2026), else None."""
+    day, month = False, False
+    for m in _NUMERIC_DATE_RE.finditer(text):
+        a, b = int(m.group(1)), int(m.group(2))
+        if a > 12 and b <= 12:
+            day = True
+        elif b > 12 and a <= 12:
+            month = True
+    if day == month:
+        return None
+    return "dayfirst" if day else "monthfirst"
 
 
 def parse_date(text: str | None, *, dayfirst: bool = True) -> date | None:

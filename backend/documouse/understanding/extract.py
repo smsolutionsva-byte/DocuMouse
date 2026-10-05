@@ -9,7 +9,7 @@ from . import layout
 from .llm_extract import LLMField, llm_extract
 from .rules import RuleExtractor
 from .schema import schema_for
-from .tables import build_tables
+from .tables import build_tables, items_from_text_rows
 
 
 def extract(raw: RawDocument, doc_type: str, *, llm: LLMProvider | None = None) -> DocumentData:
@@ -20,6 +20,12 @@ def extract(raw: RawDocument, doc_type: str, *, llm: LLMProvider | None = None) 
         fields = {key: reconcile(value, llm_fields.get(key)) for key, value in fields.items()}
 
     tables = build_tables(raw, want_line_items=doc_type in ("invoice", "receipt"))
+    if doc_type == "receipt" and not any(t.role == "line_items" for t in tables):
+        items = items_from_text_rows(raw)
+        if items is not None:
+            tables.insert(0, items)
+    for i, table in enumerate(tables, start=1):
+        table.id = f"t{i}"
     data = DocumentData(doc_type=doc_type, fields=fields, tables=tables)
     data.next_table_id = len(tables) + 1
     return data

@@ -19,7 +19,7 @@ from PIL import Image
 from ...config import Settings
 from ..html_table import parse_html_table
 from ..pages import PageImage
-from ..types import LayoutBlock, PageInfo, RawDocument, Table, TextLine
+from ..types import LayoutBlock, PageInfo, RawDocument, Table, TextLine, reading_order
 from .base import EngineResult, EngineUnavailable
 
 log = logging.getLogger(__name__)
@@ -93,7 +93,10 @@ class PaddleStructureEngine:
 
         for page in pages:
             bgr = np.asarray(page.image)[:, :, ::-1].copy()
-            results = list(pipeline.predict(bgr))
+            # Pages are already straightened by document orientation classification. The extra
+            # per-table orientation check misfires on small borderless tables (e.g. a totals
+            # block) and returns them rotated 180°, so it's off.
+            results = list(pipeline.predict(bgr, use_table_orientation_classify=False))
             if not results:
                 page_infos.append(PageInfo(index=page.index, width=page.image.width, height=page.image.height))
                 continue
@@ -116,12 +119,11 @@ class PaddleStructureEngine:
             blocks.extend(page_blocks)
             tables.extend(page_tables)
 
-        lines.sort(key=lambda ln: (ln.page, round(ln.bbox[1], 3), ln.bbox[0]))
         doc = RawDocument(
             engine=self.name,
             engine_version=self.version,
             pages=page_infos,
-            lines=lines,
+            lines=reading_order(lines),
             blocks=blocks,
             tables=tables,
             meta={"preset": self.settings.ocr_preset},

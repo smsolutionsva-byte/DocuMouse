@@ -16,6 +16,7 @@ from ..document_data import FieldValue, Source
 from ..processing.types import RawDocument, TextLine
 from . import layout
 from .parsing import (
+    DAYFIRST_CURRENCIES,
     detect_currency,
     find_amounts,
     find_dates,
@@ -23,6 +24,7 @@ from .parsing import (
     find_time,
     format_amount,
     looks_like_money,
+    numeric_date_order,
 )
 from .schema import FieldDef, schema_for
 
@@ -83,8 +85,16 @@ class RuleExtractor:
         self.lines = raw.lines
         self.order = {line.id: i for i, line in enumerate(self.lines)}
         self.currency, self.currency_conf, _ = detect_currency(raw.full_text)
-        # Day-first unless the document looks American.
-        self.dayfirst = self.currency != "USD"
+        # Is 04/05/2026 the 4th of May or April 5th? Settle it from the page itself when a
+        # date like 25/09/2026 is printed, otherwise from the currency's local convention.
+        # Only when neither works is the user asked.
+        order = numeric_date_order(raw.full_text)
+        if order:
+            self.dayfirst, self.date_order_known = order == "dayfirst", True
+        elif self.currency in DAYFIRST_CURRENCIES and self.currency_conf >= 0.85:
+            self.dayfirst, self.date_order_known = True, True
+        else:
+            self.dayfirst, self.date_order_known = self.currency != "USD", False
 
     # ------------------------------------------------------------ public
 
@@ -143,18 +153,26 @@ class RuleExtractor:
 
     def _value_for_label(self, fdef: FieldDef, line: TextLine, label_end: int) -> Candidate | None:
         rest = _SEPARATORS.sub("", line.text[label_end:])
-        cand = self._parse_value(fdef, rest, [line], 0.95)
-        if cand:
-            return cand
-        for neighbour in layout.right_neighbours(line, self.lines)[:3]:
-            cand = self._parse_value(fdef, _SEPARATORS.sub("", neighbour.text), [line, neighbour], 0.9)
+        if fdef.kind == "amount":
+            # Money on the label's own line first, then the right-most money on its row
+            # (value columns are right-aligned), and only then a bare number on the line.
+            cand = self._parse_value(fdef, rest, [line], 0.95, money_only=True)
             if cand:
-                if fdef.kind == "amount":
-                    # Value columns are right-aligned; prefer the right-most amount on the row.
-                    row_amounts = self._row_amount(line)
-                    if row_amounts:
-                        return row_amounts
                 return cand
+            row = self._row_amount(line)
+            if row:
+                return row
+            cand = self._parse_value(fdef, rest, [line], 0.95)
+            if cand:
+                return cand
+        else:
+            cand = self._parse_value(fdef, rest, [line], 0.95)
+            if cand:
+                return cand
+            for neighbour in layout.right_neighbours(line, self.lines)[:3]:
+                cand = self._parse_value(fdef, _SEPARATORS.sub("", neighbour.text), [line, neighbour], 0.9)
+                if cand:
+                    return cand
         for below in layout.lines_below(line, self.lines)[:2]:
             cand = self._parse_value(fdef, below.text, [line, below], 0.75)
             if cand:
@@ -164,14 +182,16 @@ class RuleExtractor:
     def _row_amount(self, label_line: TextLine) -> Candidate | None:
         row = [o for o in layout.right_neighbours(label_line, self.lines)]
         for line in reversed(row):
-            amounts = [a for a in find_amounts(line.text)]
+            amounts = [a for a in find_amounts(line.text) if looks_like_money(a)]
             if amounts:
                 a = amounts[-1]
                 return Candidate(format_amount(a.value), a.raw, 0.9 * self._conf([label_line, line]),
                                  [label_line, line], 0, 0)
         return None
 
-    def _parse_value(self, fdef: FieldDef, text: str, lines: list[TextLine], placement: float) -> Candidate | None:
+    def _parse_value(
+        self, fdef: FieldDef, text: str, lines: list[TextLine], placement: float, *, money_only: bool = False
+    ) -> Candidate | None:
         text = text.strip()
         if not text:
             return None
@@ -181,7 +201,7 @@ class RuleExtractor:
             money = [a for a in amounts if looks_like_money(a)]
             if money:
                 a = money[-1]
-            elif len(amounts) == 1:
+            elif len(amounts) == 1 and not money_only:
                 a = amounts[0]
                 conf *= 0.85
             else:
@@ -193,7 +213,7 @@ class RuleExtractor:
                 return None
             d = dates[0]
             notes = []
-            if d.ambiguous:
+            if d.ambiguous and not self.date_order_known:
                 conf = min(conf, 0.6)
                 notes.append(_ambiguity_note(d.raw, d.value, self.dayfirst))
             return Candidate(d.value.isoformat(), d.raw, conf, lines, 0, 0, notes)
@@ -218,7 +238,7 @@ class RuleExtractor:
             if dates:
                 d = dates[0]
                 notes = ["No “date” label was found next to this date."]
-                if d.ambiguous:
+                if d.ambiguous and not self.date_order_known:
                     notes.append(_ambiguity_note(d.raw, d.value, self.dayfirst))
                 return Candidate(d.value.isoformat(), d.raw, 0.55 * self._conf([line]), [line], 99, 0, notes)
         return None
@@ -278,10 +298,24 @@ class RuleExtractor:
         if best is None:
             return FieldValue()
         score, ln = best
-        confidence = min(0.9, score) * ln.confidence
+        pieces = self._same_row_pieces(ln)
+        text = " ".join(p.text.strip() for p in pieces)
+        confidence = min(0.9, score) * min(p.confidence for p in pieces)
         notes = [] if score >= 0.75 else ["Picked from the top of the page — please check."]
-        return FieldValue(value=ln.text.strip(), raw=ln.text.strip(), confidence=round(confidence, 3),
-                          source=_source([ln]), origin="ocr", notes=notes)
+        return FieldValue(value=text, raw=text, confidence=round(confidence, 3),
+                          source=_source(pieces), origin="ocr", notes=notes)
+
+    def _same_row_pieces(self, line: TextLine) -> list[TextLine]:
+        """A name the engine split into adjacent boxes ("THE" | "DAILY GRIND CAFE")."""
+        row = layout.row_of(line, self.lines)
+        i = row.index(line)
+        gap = 1.2 * layout.height(line)
+        left, right = i, i
+        while left > 0 and row[left].bbox[0] - row[left - 1].bbox[2] < gap and _wordy(row[left - 1].text):
+            left -= 1
+        while right < len(row) - 1 and row[right + 1].bbox[0] - row[right].bbox[2] < gap and _wordy(row[right + 1].text):
+            right += 1
+        return row[left : right + 1]
 
     def _in_title_block(self, line: TextLine) -> bool:
         for block in self.raw.blocks:
@@ -313,6 +347,7 @@ class RuleExtractor:
                 if rest:
                     collected.append(line)
                 previous = line
+                capped = False
                 for below in layout.lines_below(line, self.lines, max_gap_lines=8):
                     if below.bbox[1] - previous.bbox[3] > 1.6 * layout.height(previous):
                         break
@@ -322,13 +357,14 @@ class RuleExtractor:
                     collected.append(below)
                     previous = below
                     if len(parts) >= 5:
+                        capped = True
                         break
                 if parts:
                     lines = collected or [line]
+                    notes = ["This address block is long — check where it ends."] if capped else []
                     return FieldValue(value="\n".join(parts), raw="\n".join(parts),
-                                      confidence=round(0.75 * self._conf(lines), 3),
-                                      source=_source(lines), origin="ocr",
-                                      notes=["Read from the “Bill to” block — check where it starts and ends."])
+                                      confidence=round(0.88 * self._conf(lines), 3),
+                                      source=_source(lines), origin="ocr", notes=notes)
         return FieldValue()
 
     def _payment_method(self, fdef: FieldDef) -> FieldValue:
@@ -366,6 +402,10 @@ class RuleExtractor:
             origin="ocr",
             notes=cand.notes,
         )
+
+
+def _wordy(text: str) -> bool:
+    return bool(re.search(r"[A-Za-z]{2}", text)) and not _NOT_A_NAME.search(text) and not find_dates(text)
 
 
 def _source(lines: list[TextLine | None]) -> Source | None:

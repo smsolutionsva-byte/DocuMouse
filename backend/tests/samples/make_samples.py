@@ -35,12 +35,12 @@ def invoice_pdf(path: Path) -> None:
     doc = SimpleDocTemplate(str(path), pagesize=A4, leftMargin=18 * mm, rightMargin=18 * mm, topMargin=16 * mm, bottomMargin=16 * mm)
     head = Table(
         [[Paragraph("Nimbus Cloud Services Pvt Ltd", s(15, True)), Paragraph("TAX INVOICE", s(15, True, 2))],
-         [Paragraph("4th Floor, Prestige Tower, MG Road<br/>Bengaluru, Karnataka 560001<br/>GSTIN: 29AABCN1234M1Z5", s()),
+         [Paragraph("4th Floor, Prestige Tower, MG Road<br/>Bengaluru, Karnataka 560001<br/>GSTIN: 29AABCN1234M1ZD", s()),
           Paragraph("Invoice No: NCS/2026/0417<br/>Invoice Date: 12/09/2026<br/>Due Date: 12/10/2026", s(9.5, False, 2))]],
         colWidths=[105 * mm, 69 * mm],
     )
     head.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "TOP"), ("BOTTOMPADDING", (0, 0), (-1, -1), 4)]))
-    bill = Paragraph("<b>Bill To:</b><br/>Mouse &amp; Cheese Traders<br/>22 Lake Road, Kolkata 700029<br/>GSTIN: 19AAFCM5678Q1Z2", s())
+    bill = Paragraph("<b>Bill To:</b><br/>Mouse &amp; Cheese Traders<br/>22 Lake Road, Kolkata 700029<br/>GSTIN: 19AAFCM5678Q1ZF", s())
 
     rows = [
         ["#", "Description", "HSN/SAC", "Qty", "Rate", "Amount"],
@@ -104,7 +104,7 @@ def receipt_png(path: Path) -> None:
 
     line("THE DAILY GRIND CAFE", size=30, bold=True, center=True)
     line("18 Brigade Road, Bengaluru", size=20, center=True)
-    line("GSTIN 29AAGFT4321L1Z9", size=20, center=True)
+    line("GSTIN 29AAGFT4321L1ZW", size=20, center=True)
     y += 14
     line("Receipt No: 88213", size=21)
     line("Date: 03/10/2026   Time: 18:42", size=21)

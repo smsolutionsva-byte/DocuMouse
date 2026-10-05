@@ -11,7 +11,7 @@ import re
 from ..document_data import Column, Row, Source, TableData
 from ..processing.types import RawDocument, Table
 from . import layout
-from .parsing import normalise_label, parse_amount
+from .parsing import find_amounts, find_dates, format_amount, looks_like_money, normalise_label, parse_amount
 from .schema import COLUMN_ROLES
 
 _EXTRA_ROLES: dict[str, tuple[str, ...]] = {
@@ -186,3 +186,91 @@ def _drop_empty_columns(data: TableData) -> None:
     ids = {c.id for c in keep}
     for r in data.rows:
         r.cells = {k: v for k, v in r.cells.items() if k in ids}
+
+
+# ------------------------------------------------------------------ receipts without a ruled table
+
+_ITEMS_END = re.compile(
+    r"^\s*(sub\s*-?\s*total|total|grand\s+total|net\s+(amount|total)|amount\s+(due|payable)|"
+    r"cgst|sgst|igst|tax|vat|gst|discount|round(ing)?\s*off)\b",
+    re.I,
+)
+_NOT_AN_ITEM = re.compile(
+    r"\b(receipt|invoice|bill\s*(no|#)|date|time|cashier|server|table|gstin|phone|tel|order\s*(no|#)|token|"
+    r"address|thank|visit|www\.|@)\b",
+    re.I,
+)
+_QTY = re.compile(r"(?:\b[x×*]\s?(\d{1,3})\b|\b(\d{1,3})\s?[x×*](?=\s|$)|\bqty\.?\s*:?\s*(\d{1,3})\b)", re.I)
+_QTY_PRICE = re.compile(r"\b(\d{1,3})\s?[x×*@]\s?(\d+(?:[.,]\d{1,2})?)\b")
+
+
+def items_from_text_rows(raw: RawDocument) -> TableData | None:
+    """Line items printed as "Name ... price" rows above the subtotal (typical till receipts).
+
+    Only used when PP-StructureV3 found no item table. Each row needs a name on the
+    left and exactly one money amount at the right; nothing is guessed beyond that.
+    """
+    lines = raw.lines
+    if not lines:
+        return None
+    end = next((i for i, ln in enumerate(lines) if _ITEMS_END.match(ln.text)), None)
+    if end is None:
+        return None
+    used: set[str] = set()
+    parsed: list[tuple[str, str, str, str, list]] = []  # name, qty, unit, amount, lines
+    for ln in lines[:end]:
+        if ln.id in used or not re.search(r"[A-Za-z]{2}", ln.text) or _NOT_AN_ITEM.search(ln.text) or find_dates(ln.text):
+            continue
+        row = [o for o in layout.row_of(ln, lines[:end]) if o.id not in used]
+        right = [o for o in row if o.bbox[0] > ln.bbox[2] - 0.005]
+        text = ln.text
+        money_line = right[-1] if right else None
+        amounts = [a for a in find_amounts(money_line.text)] if money_line else []
+        if money_line is None or len(amounts) != 1 or not looks_like_money(amounts[0]):
+            # Everything on one line: "Cappuccino 2 x 3.50  7.00"
+            inline = [a for a in find_amounts(text) if looks_like_money(a)]
+            if not inline:
+                continue
+            amount = inline[-1]
+            text = text[: amount.start].strip()
+            members = [ln]
+        else:
+            amount = amounts[0]
+            members = [ln, *right]
+        qty, unit = "", ""
+        qp = _QTY_PRICE.search(text)
+        if qp:
+            qty, unit = qp.group(1), format_amount(parse_amount(qp.group(2)))
+            text = (text[: qp.start()] + text[qp.end():]).strip()
+        else:
+            q = _QTY.search(text)
+            if q:
+                qty = next(g for g in q.groups() if g)
+                text = (text[: q.start()] + text[q.end():]).strip()
+        name = re.sub(r"\s{2,}", " ", text).strip(" -:")
+        if len(name) < 2:
+            continue
+        used.update(m.id for m in members)
+        parsed.append((name, qty, unit, format_amount(amount.value), members))
+    if not parsed:
+        return None
+
+    table = TableData(id="t0", title="Line items", role="line_items")
+    cols = [("Item", "item"), ("Qty", "quantity")]
+    if any(unit for _, _, unit, _, _ in parsed):
+        cols.append(("Price", "unit_price"))
+    cols.append(("Amount", "amount"))
+    for name, role in cols:
+        table.columns.append(Column(id=table.new_id("c"), name=name, role=role))
+    by_role = {c.role: c.id for c in table.columns}
+    all_lines = []
+    for name, qty, unit, amount, members in parsed:
+        cells = {by_role["item"]: name, by_role["quantity"]: qty, by_role["amount"]: amount}
+        if "unit_price" in by_role:
+            cells[by_role["unit_price"]] = unit
+        table.rows.append(Row(id=table.new_id("r"), cells=cells,
+                              source=Source(page=members[0].page, bbox=layout.union_bbox(members))))
+        all_lines.extend(members)
+    page = all_lines[0].page
+    table.source = Source(page=page, bbox=layout.union_bbox([m for m in all_lines if m.page == page]))
+    return table

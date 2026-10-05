@@ -113,6 +113,8 @@ def test_duplicate_upload_flagged_not_deleted(client):
     first = upload(client, content)
     second = client.post("/api/documents", files={"file": ("again.png", content, "image/png")}).json()
     assert second["duplicate_of"][0]["id"] == first
+    # Both sides know about each other once processing finishes.
+    assert client.get(f"/api/documents/{first}").json()["duplicate_of"][0]["id"] == second["id"]
     docs = client.get("/api/documents").json()["documents"]
     assert len(docs) == 2
 

@@ -67,3 +67,27 @@ class RawDocument(BaseModel):
     @property
     def full_text(self) -> str:
         return "\n".join(line.text for line in self.lines)
+
+
+def reading_order(lines: list[TextLine]) -> list[TextLine]:
+    """Top-to-bottom, then left-to-right within each visual row.
+
+    Sorting by raw y alone interleaves a row whose boxes start a pixel apart
+    ("Table: 7" before "Cashier: Priya"), so lines are grouped into rows first.
+    """
+    out: list[TextLine] = []
+    for page in sorted({ln.page for ln in lines}):
+        pending = sorted((ln for ln in lines if ln.page == page), key=lambda ln: (ln.bbox[1] + ln.bbox[3]) / 2)
+        row: list[TextLine] = []
+        row_y = 0.0
+        for ln in pending:
+            cy = (ln.bbox[1] + ln.bbox[3]) / 2
+            h = ln.bbox[3] - ln.bbox[1]
+            if row and abs(cy - row_y) > 0.5 * h:
+                out.extend(sorted(row, key=lambda x: x.bbox[0]))
+                row = []
+            if not row:
+                row_y = cy
+            row.append(ln)
+        out.extend(sorted(row, key=lambda x: x.bbox[0]))
+    return out

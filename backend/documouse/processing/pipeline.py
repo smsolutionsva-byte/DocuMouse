@@ -13,7 +13,7 @@ import traceback
 
 from ..config import get_settings
 from ..db import session_scope
-from ..duplicates import find_duplicates
+from ..duplicates import link_duplicates
 from ..llm import get_llm
 from ..models import Document, DocumentStatus, utcnow
 from ..storage import get_storage
@@ -87,7 +87,7 @@ def process_document(doc_id: str) -> None:
         with session_scope() as s:
             doc = s.get(Document, doc_id)
             versioning.commit(s, doc, data, author="system", message="Initial extraction")
-            doc.duplicate_of = find_duplicates(s, doc) or None
+            link_duplicates(s, doc)
             doc.status = DocumentStatus.READY
             doc.processed_at = utcnow()
     except UnsupportedFile as exc:
