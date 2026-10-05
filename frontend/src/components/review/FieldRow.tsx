@@ -49,6 +49,7 @@ export function FieldRow({
   const focused = focus?.kind === "field" && focus.key === schema.key;
   const needsAttention = status === "review" || status === "missing";
   const edited = field?.origin === "user" || field?.origin === "ai";
+  const readTwice = !edited && status === "verified" && field?.second_opinion?.agrees;
   const isFlashing = flash.has(`f:${schema.key}`);
   const Tag = schema.kind === "multiline" ? "textarea" : "input";
 
@@ -65,6 +66,11 @@ export function FieldRow({
       <label htmlFor={id} className="pt-[7px] text-[13px] leading-5 text-ink-3">
         {schema.label}
         {edited ? <span className="ml-1.5 text-2xs text-ink-4">{field?.origin === "ai" ? "· AI edit" : "· edited"}</span> : null}
+        {readTwice ? (
+          <span className="ml-1.5 text-2xs text-ink-4" title={`${field?.second_opinion?.reader} read the same value`}>
+            · read twice
+          </span>
+        ) : null}
       </label>
       <div className="min-w-0">
         <div

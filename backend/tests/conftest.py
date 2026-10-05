@@ -31,13 +31,15 @@ def client(tmp_path, monkeypatch):
     monkeypatch.setenv("DOCUMOUSE_DATABASE_URL", db_url)
     monkeypatch.setenv("DOCUMOUSE_STORAGE_DIR", str(tmp_path / "data"))
     monkeypatch.setenv("DOCUMOUSE_LLM_PROVIDER", "none")
+    monkeypatch.setenv("DOCUMOUSE_SECOND_READER", "none")
 
-    from documouse import config, db, llm, storage
+    from documouse import config, crosscheck, db, llm, storage
     from documouse.processing import engines, pipeline, runner
 
     config.get_settings.cache_clear()
     storage.get_storage.cache_clear()
     llm.get_llm.cache_clear()
+    crosscheck.get_second_reader.cache_clear()
     engines.get_engine.cache_clear()
     db.init_engine()
 

@@ -1,7 +1,8 @@
 """The processing pipeline for one document.
 
     original file → page images → document engine (PP-StructureV3)
-    → classification → extraction (rules + optional LLM) → validation
+    → classification → extraction (rules + optional LLM)
+    → optional second reading of the key fields (cross-check) → validation
     → version 1 → ready for review
 """
 
@@ -12,6 +13,7 @@ import logging
 import traceback
 
 from ..config import get_settings
+from ..crosscheck import KEY_FIELDS, SecondReading, apply_second_reading, get_second_reader
 from ..db import session_scope
 from ..duplicates import link_duplicates
 from ..llm import get_llm
@@ -21,7 +23,7 @@ from ..understanding.classify import classify
 from ..understanding.extract import extract
 from .. import versioning
 from .engines import EngineUnavailable, get_engine
-from .pages import UnsupportedFile, encode_jpeg, render_pages
+from .pages import PageImage, UnsupportedFile, encode_jpeg, render_pages
 from .types import RawDocument
 
 log = logging.getLogger(__name__)
@@ -29,6 +31,10 @@ log = logging.getLogger(__name__)
 
 def raw_key(doc_id: str) -> str:
     return f"documents/{doc_id}/engine/document.json"
+
+
+def second_reading_key(doc_id: str) -> str:
+    return f"documents/{doc_id}/engine/second_reading.json"
 
 
 def _set_status(doc_id: str, status: str) -> None:
@@ -56,8 +62,10 @@ def process_document(doc_id: str) -> None:
         result = engine.process(pages)
         raw = result.document
         page_meta = []
+        upright: list[PageImage] = []
         for page in pages:
             image = result.corrected_pages.get(page.index, page.image)
+            upright.append(PageImage(index=page.index, image=image))
             key = f"documents/{doc_id}/pages/{page.index}.jpg"
             storage.put(key, encode_jpeg(image))
             page_meta.append({"index": page.index, "width": image.width, "height": image.height, "image_key": key})
@@ -83,7 +91,10 @@ def process_document(doc_id: str) -> None:
         data = extract(raw, doc_type, llm=get_llm())
         _set_status(doc_id, DocumentStatus.CHECKING)
 
-        # 4. Checking + first version
+        # 4. Checking: an independent second reading of the key fields, then the first version
+        reading = _second_reading(doc_id, upright, doc_type)
+        if reading is not None:
+            data = apply_second_reading(data, reading)
         with session_scope() as s:
             doc = s.get(Document, doc_id)
             versioning.commit(s, doc, data, author="system", message="Initial extraction")
@@ -104,10 +115,34 @@ def reextract(session, doc: Document, doc_type: str) -> None:
     """Re-run extraction from the stored engine output (no OCR) as a new version."""
     raw = load_raw(doc.id)
     data = extract(raw, doc_type, llm=get_llm())
+    storage = get_storage()
+    if storage.exists(second_reading_key(doc.id)):
+        reading = SecondReading.model_validate_json(storage.get(second_reading_key(doc.id)))
+        data = apply_second_reading(data, reading)
     from ..understanding.schema import DOC_TYPE_LABELS
 
     versioning.commit(session, doc, data, author="user", message=f"Changed type to {DOC_TYPE_LABELS[doc_type].lower()}",
                       operations=[{"op": "set_doc_type", "doc_type": doc_type}])
+
+
+def _second_reading(doc_id: str, pages: list[PageImage], doc_type: str) -> SecondReading | None:
+    """Read the pages again with the second reader, if one is configured.
+
+    Optional by design: when it's off, unreachable or fails, the document is still
+    processed, just without the cross-check.
+    """
+    if doc_type not in KEY_FIELDS:
+        return None  # nothing to cross-check on an unrecognised document
+    try:
+        reader = get_second_reader()
+        if reader is None:
+            return None
+        reading = reader.read(pages, doc_type)
+    except Exception:  # noqa: BLE001 - the second reader must never fail a document
+        log.warning("Second reading failed for %s; continuing without it", doc_id, exc_info=True)
+        return None
+    get_storage().put(second_reading_key(doc_id), reading.model_dump_json().encode())
+    return reading
 
 
 def load_raw(doc_id: str) -> RawDocument:

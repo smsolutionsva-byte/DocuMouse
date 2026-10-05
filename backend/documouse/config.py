@@ -16,6 +16,16 @@ LLM_PRESETS: dict[str, str] = {
     "lmstudio": "http://localhost:1234/v1",
 }
 
+# Vision providers for the second reader: (OpenAI-compatible base URL, default model).
+# Free tiers change often; check the provider's current limits and data terms.
+VISION_PRESETS: dict[str, tuple[str, str | None]] = {
+    "gemini": ("https://generativelanguage.googleapis.com/v1beta/openai", "gemini-3.8-flash"),
+    "openrouter": ("https://openrouter.ai/api/v1", None),
+    "github": ("https://models.github.ai/inference", None),
+    "ollama": ("http://localhost:11434/v1", None),
+    "lmstudio": ("http://localhost:1234/v1", None),
+}
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
@@ -50,6 +60,21 @@ class Settings(BaseSettings):
     llm_model: str | None = None
     llm_timeout_seconds: float = 60.0
 
+    # Second reader (optional): reads every page again, independently, so the key fields
+    # (business name, date, total) can be cross-checked. See documouse/crosscheck.
+    second_reader: Literal["none", "paddleocr_vl", "vision"] = "none"
+    # PaddleOCR-VL: an OpenAI-compatible server (llama.cpp's llama-server, vLLM; URL ends in /v1),
+    # or a PaddleOCR-VL layout-parsing endpoint (PaddleOCR's hosted API or a PaddleX serving app).
+    paddleocr_vl_url: str | None = None
+    paddleocr_vl_token: str | None = None  # hosted API only
+    paddleocr_vl_model: str = "PaddleOCR-VL-1.6"  # model name sent to an OpenAI-compatible server
+    # Vision model behind any OpenAI-compatible chat endpoint.
+    vision_provider: Literal["gemini", "openrouter", "github", "ollama", "lmstudio", "openai_compatible"] = "gemini"
+    vision_base_url: str | None = None
+    vision_api_key: str | None = None
+    vision_model: str | None = None
+    second_reader_timeout_seconds: float = 180.0
+
     cors_origins: list[str] = ["http://localhost:3000"]
 
     @property
@@ -59,6 +84,12 @@ class Settings(BaseSettings):
     @property
     def resolved_llm_base_url(self) -> str | None:
         return self.llm_base_url or LLM_PRESETS.get(self.llm_provider)
+
+    @property
+    def resolved_vision(self) -> tuple[str | None, str | None]:
+        """(base URL, model) for the vision second reader, with the provider's defaults filled in."""
+        base_url, model = VISION_PRESETS.get(self.vision_provider, (None, None))
+        return self.vision_base_url or base_url, self.vision_model or model
 
 
 def _export_paddle_env(env_file: Path = Path(".env")) -> None:

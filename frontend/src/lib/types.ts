@@ -25,6 +25,8 @@ export interface FieldValue {
   confirmed: boolean;
   suggestion: { value: string; reason: string } | null;
   notes: string[];
+  /** What an independent second reader read for this field, when cross-checking is on. */
+  second_opinion?: { reader: string; value: string | null; agrees: boolean } | null;
 }
 
 export interface Column {

@@ -27,6 +27,14 @@ class Suggestion(BaseModel):
     reason: str
 
 
+class SecondOpinion(BaseModel):
+    """What an independent second reader (see ``documouse.crosscheck``) read for this field."""
+
+    reader: str
+    value: str | None = None
+    agrees: bool = False
+
+
 class FieldValue(BaseModel):
     value: str | None = None
     raw: str | None = None
@@ -38,6 +46,7 @@ class FieldValue(BaseModel):
     confirmed: bool = False
     suggestion: Suggestion | None = None
     notes: list[str] = Field(default_factory=list)
+    second_opinion: SecondOpinion | None = None
 
 
 class Column(BaseModel):

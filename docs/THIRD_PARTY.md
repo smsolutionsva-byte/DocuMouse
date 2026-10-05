@@ -12,6 +12,17 @@ Check each project's repository for the authoritative terms.
 | [PaddlePaddle](https://github.com/PaddlePaddle/Paddle) 3.x | Apache-2.0 | Deep learning runtime |
 | PP-StructureV3 models (PP-DocLayout, PP-OCRv5, SLANet/SLANeXt, RT-DETR table cells, PP-LCNet) | Apache-2.0 (see each model card) | Downloaded on first run, not redistributed by DocuMouse |
 
+## Optional second reader
+
+Not installed with DocuMouse. You run these yourself if you turn the cross-check on.
+
+| Project | License | Used for |
+| --- | --- | --- |
+| [PaddleOCR-VL-1.6](https://huggingface.co/PaddlePaddle/PaddleOCR-VL-1.6-GGUF) (GGUF) | Apache-2.0 | Second reading of the page (text spotting) |
+| [llama.cpp](https://github.com/ggml-org/llama.cpp) | MIT | Serves PaddleOCR-VL on a CPU |
+
+Hosted services (PaddleOCR's API, Gemini and other vision APIs) are under their providers' terms of service.
+
 ## Backend (Python)
 
 | Package | License |

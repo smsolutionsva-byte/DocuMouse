@@ -8,6 +8,10 @@ Nothing from the dataset is committed to this repository.
     python eval/sroie.py ocr    --data ~/datasets/sroie --split train
     python eval/sroie.py score  --data ~/datasets/sroie --split train [--show-errors 20]
 
+    # Cross-check with a second reader, configured like the app (DOCUMOUSE_SECOND_READER, ...)
+    python eval/sroie.py second --data ~/datasets/sroie --split test --second-cache .eval-cache/sroie-vl
+    python eval/sroie.py score  --data ~/datasets/sroie --split test --second-cache .eval-cache/sroie-vl
+
 Scoring runs the exact app pipeline after OCR: classify → extract → validate.
 For each key field it reports accuracy, how often the field is missing, and how
 often a WRONG value was shown as verified (a silent error, the number that
@@ -29,6 +33,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from documouse.crosscheck import SecondReading, apply_second_reading, get_second_reader  # noqa: E402
+from documouse.processing.pages import render_pages, sniff_content_type  # noqa: E402
 from documouse.understanding.classify import classify  # noqa: E402
 from documouse.understanding.extract import extract  # noqa: E402
 from documouse.understanding.parsing import find_dates, parse_amount  # noqa: E402
@@ -83,7 +89,49 @@ def cmd_ocr(args) -> None:
     warm_cache(images, args.cache / args.split)
 
 
+def cmd_second(args) -> None:
+    """Run the configured second reader over the images and cache what it read."""
+    if args.second_cache is None:
+        sys.exit("--second-cache is required")
+    reader = get_second_reader()
+    if reader is None:
+        sys.exit("No second reader configured (set DOCUMOUSE_SECOND_READER and its options).")
+    out = args.second_cache / args.split
+    out.mkdir(parents=True, exist_ok=True)
+    labels = load_labels(args.data, args.split)[: args.limit]
+    times: list[float] = []
+    for i, row in enumerate(labels, start=1):
+        target = out / f"{row['key']}.json"
+        if target.exists():
+            continue
+        data = (args.data / "images" / args.split / f"{row['key']}.jpg").read_bytes()
+        pages = render_pages(data, sniff_content_type(data) or "image/jpeg", dpi=200, max_pages=1)
+        start = time.time()
+        try:
+            reading = reader.read(pages, "receipt")
+        except Exception as exc:  # keep going; report at the end
+            print(f"[{i}/{len(labels)}] {row['key']}: FAILED {exc}", flush=True)
+            continue
+        times.append(time.time() - start)
+        target.write_text(reading.model_dump_json())
+        if len(times) % 10 == 0 or i == len(labels):
+            print(f"[{i}/{len(labels)}] avg {sum(times) / len(times):.1f}s/image over {len(times)} new", flush=True)
+
+
 def cmd_score(args) -> None:
+    if args.second_cache is not None:
+        # Score the same receipts twice, without and with the cross-check.
+        args.second_cache = args.second_cache / args.split
+        print("=== PaddleOCR + rules only (same receipts) ===")
+        score(args, cross_check=False)
+        print()
+        print("=== with the second reader's cross-check ===")
+        score(args, cross_check=True)
+    else:
+        score(args, cross_check=False)
+
+
+def score(args, *, cross_check: bool) -> None:
     labels = load_labels(args.data, args.split)[: args.limit]
     stats: dict[str, Counter] = defaultdict(Counter)
     types: Counter = Counter()
@@ -97,11 +145,19 @@ def cmd_score(args) -> None:
             raw, _ = cached_raw(args.data / "images" / args.split / f"{row['key']}.jpg", args.cache / args.split)
         except RuntimeError:
             continue
+        second = None
+        if args.second_cache is not None:
+            path = args.second_cache / f"{row['key']}.json"
+            if not path.exists():
+                continue
+            second = SecondReading.model_validate_json(path.read_text())
         used += 1
         c = classify(raw)
         types[c.detected_type] += 1
         doc_type = c.detected_type if c.detected_type in ("receipt", "invoice") else "receipt"
         data = extract(raw, doc_type)
+        if cross_check and second is not None:
+            data = apply_second_reading(data, second)
         v = validate(data, today=date(2019, 12, 31))
         review_counts.append(v.summary["issues"])
         for ch in v.checks:
@@ -151,14 +207,15 @@ def cmd_score(args) -> None:
 
 def main() -> None:
     p = argparse.ArgumentParser()
-    p.add_argument("command", choices=["fetch", "ocr", "score"])
+    p.add_argument("command", choices=["fetch", "ocr", "second", "score"])
     p.add_argument("--data", type=Path, required=True, help="SROIE checkout (labels in data/, images in images/)")
     p.add_argument("--split", default="train", choices=["train", "test"])
     p.add_argument("--cache", type=Path, default=Path(".eval-cache/sroie"))
     p.add_argument("--limit", type=int, default=None)
     p.add_argument("--show-errors", type=int, default=0)
+    p.add_argument("--second-cache", type=Path, default=None, help="where the second reader's output is cached")
     args = p.parse_args()
-    {"fetch": cmd_fetch, "ocr": cmd_ocr, "score": cmd_score}[args.command](args)
+    {"fetch": cmd_fetch, "ocr": cmd_ocr, "second": cmd_second, "score": cmd_score}[args.command](args)
 
 
 if __name__ == "__main__":

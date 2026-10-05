@@ -7,9 +7,9 @@ narrow interface, so any of them can be swapped or split out later without touch
 ## The pipeline
 
 ```
-original file ──► page images ──► document engine ──► RawDocument ──► classify ──► extract ──► validate ──► version 1
- (never changed)   (pypdfium2/      (PaddleOCR          (engine-        (rules)       (rules ±     (deterministic)
-                    Pillow)          PP-StructureV3)     neutral)                      LLM)
+original file ──► page images ──► document engine ──► RawDocument ──► classify ──► extract ──► cross-check ──► validate ──► version 1
+ (never changed)   (pypdfium2/      (PaddleOCR          (engine-        (rules)       (rules ±     (optional       (deterministic)
+                    Pillow)          PP-StructureV3)     neutral)                      LLM)         second reader)
 ```
 
 1. **Pages** (`processing/pages.py`). PDFs are rendered at `DOCUMOUSE_PDF_RENDER_DPI`, and images are EXIF-rotated.
@@ -31,9 +31,19 @@ original file ──► page images ──► document engine ──► RawDocum
    - `llm_extract.py` (optional) asks an LLM to map the OCR lines to fields **with citations**. Each value is then
      checked against the cited text deterministically. Ungrounded values are never used; they show only as
      suggestions. When the rules and the LLM disagree, the user decides.
-5. **Validation** (`validation/checks.py`). Pure functions over the data: formats, GSTIN checksum, totals arithmetic
+5. **Cross-check** (`crosscheck/`, optional, off by default). A second reader reads the first and last page again on
+   its own: PaddleOCR-VL (its *spotting* task returns text lines with positions, which go through the same rules), or a
+   vision model asked for the business name, date and total. The two readings are compared field by field. The
+   result is recorded on each field as a `second_opinion`; values are never changed:
+   - agreement counts as corroboration, like a passing arithmetic check
+   - disagreement adds a note (so the field needs review) and offers the other reading as a suggestion
+   - a value only the second reader found is only a suggestion
+   The reading is stored next to the engine output, so changing the document type re-uses it. If the second reader
+   is down or fails, the document is processed without it.
+6. **Validation** (`validation/checks.py`). Pure functions over the data: formats, GSTIN checksum, totals arithmetic
    (with discount-before/after-tax and rounding variants), CGST = SGST, per-row `qty × price`, rows → subtotal.
-   Validation never edits values. Values confirmed by a passing arithmetic check count as verified.
+   Validation never edits values. Values confirmed by a passing arithmetic check, or read the same way by the
+   second reader, count as verified.
 
 ## Data model
 
@@ -73,6 +83,7 @@ express SQL or code.
 | A document engine | `DocumentEngine.process(pages) -> EngineResult` | `processing/engines/__init__.py` |
 | A storage backend (S3, GCS…) | `Storage` protocol (`put/get/exists/delete_prefix`) | `storage/__init__.py` |
 | An LLM provider | `LLMProvider.complete_json` (most need no code: they're OpenAI-compatible) | `llm/__init__.py` |
+| A second reader | `SecondReader.read(pages, doc_type) -> SecondReading` | `crosscheck/__init__.py` |
 | A document type | a `FieldDef` schema + label hints | `understanding/schema.py` |
 | An export format | a function from `DocumentData` | `export/` + a route |
 
