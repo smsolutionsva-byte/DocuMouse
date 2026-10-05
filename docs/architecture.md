@@ -35,15 +35,17 @@ original file ──► page images ──► document engine ──► RawDocum
    its own: PaddleOCR-VL (its *spotting* task returns text lines with positions, which go through the same rules), or a
    vision model asked for the business name, date and total. The two readings are compared field by field. The
    result is recorded on each field as a `second_opinion`; values are never changed:
-   - agreement counts as corroboration, like a passing arithmetic check
    - disagreement adds a note (so the field needs review) and offers the other reading as a suggestion
    - a value only the second reader found is only a suggestion
+   - agreement counts as corroboration, like a passing arithmetic check, but only from a vision model. PaddleOCR-VL's
+     lines go through DocuMouse's own rules, so when the rules pick the wrong line both readings agree on the same
+     wrong value. PaddleOCR-VL can flag a value, not confirm it.
    The reading is stored next to the engine output, so changing the document type re-uses it. If the second reader
    is down or fails, the document is processed without it.
 6. **Validation** (`validation/checks.py`). Pure functions over the data: formats, GSTIN checksum, totals arithmetic
    (with discount-before/after-tax and rounding variants), CGST = SGST, per-row `qty × price`, rows → subtotal.
-   Validation never edits values. Values confirmed by a passing arithmetic check, or read the same way by the
-   second reader, count as verified.
+   Validation never edits values. Values confirmed by a passing arithmetic check, or picked and read the same way
+   by a vision-model second reader, count as verified.
 
 ## Data model
 

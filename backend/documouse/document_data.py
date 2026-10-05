@@ -33,6 +33,8 @@ class SecondOpinion(BaseModel):
     reader: str
     value: str | None = None
     agrees: bool = False
+    # Agreement that counts as confirmation: only from a reader that picked the value on its own.
+    confirms: bool = False
 
 
 class FieldValue(BaseModel):

@@ -34,7 +34,7 @@ def test_agreement_confirms_a_value_the_rules_were_unsure_about():
     # Punctuation and spacing don't count as a difference.
     checked = apply_second_reading(data, reading(name="Corner  Cafe.", date="2026-10-03", total="11.70"))
     for key in ("merchant", "date", "total"):
-        assert checked.fields[key].second_opinion.agrees, key
+        assert checked.fields[key].second_opinion.confirms, key
     assert status(checked, "merchant")["status"] == "verified"
     assert checked.fields["merchant"].value == "CORNER CAFE"
 
@@ -82,9 +82,15 @@ def test_an_ocr_style_reading_goes_through_the_same_rules():
     raw.lines[0].text = "C0RNER CAFE"  # the second reader misread one character
     second = SecondReading(reader="PaddleOCR-VL", raw=raw)
     assert key_values(second, "receipt") == {"merchant": "C0RNER CAFE", "date": "2026-10-03", "total": "11.70"}
-    checked = apply_second_reading(extract(receipt_raw(), "receipt"), second)
+    data = extract(receipt_raw(), "receipt")
+    data.fields["date"].confidence = 0.5
+    checked = apply_second_reading(data, second)
     assert not checked.fields["merchant"].second_opinion.agrees
+    assert status(checked, "merchant")["status"] == "review"
+    # Same rules on both readings: agreeing only shows the characters match, so it doesn't confirm.
     assert checked.fields["date"].second_opinion.agrees
+    assert not checked.fields["date"].second_opinion.confirms
+    assert status(checked, "date")["status"] == "review"
 
 
 def test_parse_spotting_output():
@@ -188,7 +194,7 @@ def test_pipeline_cross_checks_and_survives_a_failing_reader(client, monkeypatch
     if fail:
         assert total["second_opinion"] is None
         return
-    assert total["second_opinion"] == {"reader": "Fake reader", "value": "11.10", "agrees": False}
+    assert total["second_opinion"] == {"reader": "Fake reader", "value": "11.10", "agrees": False, "confirms": False}
     assert doc["validation"]["fields"]["total"]["status"] == "review"
     assert doc["data"]["fields"]["merchant"]["second_opinion"]["agrees"]
 
@@ -196,7 +202,7 @@ def test_pipeline_cross_checks_and_survives_a_failing_reader(client, monkeypatch
     monkeypatch.setattr(pipeline, "get_second_reader", lambda: FakeReader(fail=True))
     doc = client.post(f"/api/documents/{doc['id']}/type", json={"doc_type": "invoice"}).json()
     assert json.dumps(doc["data"]["fields"]["total"]["second_opinion"]) == \
-        json.dumps({"reader": "Fake reader", "value": "11.10", "agrees": False})
+        json.dumps({"reader": "Fake reader", "value": "11.10", "agrees": False, "confirms": False})
 
 
 def test_second_reader_configuration(monkeypatch):

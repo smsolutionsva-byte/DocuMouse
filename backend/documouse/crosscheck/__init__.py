@@ -4,10 +4,11 @@ PaddleOCR + the rules produce every value DocuMouse shows. A second reader (Padd
 or a vision model behind an OpenAI-compatible API) reads the same pages on its own, and
 the two readings are compared field by field (business name, date, total):
 
-- they agree       → the value counts as confirmed, like a total that adds up
 - they disagree    → the field is flagged, with the second reading as a one-click suggestion
 - only the second  → offered as a suggestion, never filled in on its own
   reader found it
+- they agree       → recorded; it counts as confirmation (like a total that adds up) only
+                     from a reader that picked the value on its own, see compare.py
 
 The second reader never changes a value. It's off unless DOCUMOUSE_SECOND_READER is set.
 """

@@ -1,8 +1,12 @@
 """Compare a second reading with the extracted data, field by field.
 
-Never changes a value. Agreement lets validation count the value as confirmed;
-disagreement flags the field and offers the second reading as a one-click suggestion;
-a value only the second reader found is offered, not filled in.
+Never changes a value. Disagreement flags the field and offers the second reading as a
+one-click suggestion; a value only the second reader found is offered, not filled in.
+
+Agreement counts as confirmation only when the second reader chose the value on its own
+(a vision model). An OCR-style reading goes through DocuMouse's own rules, so when the
+rules pick the wrong line, both readings agree on the same wrong value: its agreement
+only shows the characters were read the same way. Such a reader can flag, not confirm.
 """
 
 from __future__ import annotations
@@ -63,7 +67,8 @@ def apply_second_reading(data: DocumentData, reading: SecondReading) -> Document
             continue  # a person already decided
         other = second.get(key)
         agrees = same_value(role, field.value, other)
-        field.second_opinion = SecondOpinion(reader=reading.reader, value=other, agrees=agrees)
+        field.second_opinion = SecondOpinion(reader=reading.reader, value=other, agrees=agrees,
+                                             confirms=agrees and reading.raw is None)
         if other is None or agrees:
             # Not finding a value is no evidence against one: the field keeps its own status.
             continue

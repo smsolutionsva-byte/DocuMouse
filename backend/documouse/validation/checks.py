@@ -171,8 +171,8 @@ def validate(data: DocumentData, *, today: date | None = None) -> Validation:
         elif c.status == "pass":
             # Numbers that add up exactly are independently confirmed by the arithmetic.
             corroborated.update(c.fields)
-    # So are values an independent second reader read the same way.
-    corroborated.update(k for k, f in fields.items() if f.second_opinion and f.second_opinion.agrees)
+    # So are values an independent second reader picked and read the same way.
+    corroborated.update(k for k, f in fields.items() if f.second_opinion and f.second_opinion.confirms)
     corroborated -= {k for k, r in reasons.items() if r}
 
     # ---------------------------------------------------------- per-field status
