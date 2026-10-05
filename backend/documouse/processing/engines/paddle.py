@@ -93,10 +93,7 @@ class PaddleStructureEngine:
 
         for page in pages:
             bgr = np.asarray(page.image)[:, :, ::-1].copy()
-            # Pages are already straightened by document orientation classification. The extra
-            # per-table orientation check misfires on small borderless tables (e.g. a totals
-            # block) and returns them rotated 180°, so it's off.
-            results = list(pipeline.predict(bgr, use_table_orientation_classify=False))
+            results = self._predict(pipeline, bgr)
             if not results:
                 page_infos.append(PageInfo(index=page.index, width=page.image.width, height=page.image.height))
                 continue
@@ -129,6 +126,24 @@ class PaddleStructureEngine:
             meta={"preset": self.settings.ocr_preset},
         )
         return EngineResult(document=doc, corrected_pages=corrected, native=native)
+
+
+    @staticmethod
+    def _predict(pipeline: Any, bgr: np.ndarray) -> list:
+        # Pages are already straightened by document orientation classification. The extra
+        # per-table orientation check misfires on small borderless tables (e.g. a totals
+        # block) and returns them rotated 180°, so it's off.
+        options = {"use_table_orientation_classify": False}
+        try:
+            return list(pipeline.predict(bgr, **options))
+        except AttributeError as exc:
+            # PaddleX 3.x bug: when one OCR box spans several table cells it re-reads the pieces
+            # with a table OCR model that PP-StructureV3 never loads ('NoneType' object has no
+            # attribute 'text_rec_model'). Matching the page's OCR results to cells avoids that path.
+            if "text_rec_model" not in str(exc):
+                raise
+            log.warning("PP-StructureV3 table OCR bug hit; retrying the page without per-cell OCR")
+            return list(pipeline.predict(bgr, use_ocr_results_with_table_cells=False, **options))
 
 
 def _norm(box: list[float], width: int, height: int) -> list[float]:

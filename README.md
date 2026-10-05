@@ -17,6 +17,21 @@ extraction, deterministic validation, a review screen, versioned editing and exp
 
 ---
 
+## How well it works
+
+Measured on 361 held-out real scanned receipts ([ICDAR 2019 SROIE](https://github.com/jsdnrs/ICDAR2019-SROIE)),
+CPU only, no LLM:
+
+| Field | Correct | Wrong but marked ✓ verified |
+| --- | --- | --- |
+| Total | 83.1% | 3.9% |
+| Date | 83.9% | 0.8% |
+| Business name | 61.2% | 6.1% |
+
+On 50 noisy scanned forms ([FUNSD](https://guillaumejaume.github.io/FUNSD/)), 90% are recognised as
+"other documents" rather than forced into an invoice template, and the rest prompt the user to choose.
+Full method, before/after numbers and known limitations: [docs/evaluation.md](docs/evaluation.md).
+
 ## What works today
 
 | Area | Status |
@@ -188,7 +203,9 @@ Built deliberately small. Next up, roughly in order:
 
 - [x] Run the real PaddleOCR pipeline end to end (PDF, scan, receipt) and tune the extractor on its output
 - [x] Receipt line items when PP-StructureV3 doesn't detect a table
-- [ ] Tune on a broader set of real-world invoices and receipts (different layouts, languages, photo quality)
+- [x] Benchmark on real scanned receipts and forms (SROIE, FUNSD), see [docs/evaluation.md](docs/evaluation.md)
+- [ ] Improve business-name extraction (61% on SROIE): logo-only names, brand vs legal entity
+- [ ] A public benchmark for invoices (including Indian GST invoices), plus phone photos
 - [ ] Authentication and per-user workspaces (currently **single-user, no login**: run it locally or behind your own auth)
 - [ ] Alembic migrations (tables are created on startup today)
 - [ ] XLSX / JSON export
