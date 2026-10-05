@@ -1,0 +1,20 @@
+# Local PostgreSQL for development: `docker compose up -d`
+# The backend and frontend run natively (see README) so PaddleOCR can use your machine directly.
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: documouse
+      POSTGRES_PASSWORD: documouse
+      POSTGRES_DB: documouse
+    ports:
+      - "5432:5432"
+    volumes:
+      - documouse-pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U documouse"]
+      interval: 5s
+      retries: 10
+
+volumes:
+  documouse-pg:

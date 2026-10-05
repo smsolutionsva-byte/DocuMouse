@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "documouse"
+version = "0.1.0"
+description = "Drop your documents in. DocuMouse figures them out."
+readme = "../README.md"
+license = { text = "MIT" }
+requires-python = ">=3.10,<3.14"
+dependencies = [
+  "fastapi>=0.115",
+  "uvicorn[standard]>=0.30",
+  "sqlalchemy>=2.0",
+  "psycopg[binary]>=3.2",
+  "pydantic>=2.7",
+  "pydantic-settings>=2.3",
+  "python-multipart>=0.0.9",
+  "httpx>=0.27",
+  "pillow>=10",
+  "pypdfium2>=4.30",
+]
+
+[project.optional-dependencies]
+# The document engine. Kept optional so the API, tests and frontend can be
+# developed on machines where PaddlePaddle wheels are not available.
+ocr = [
+  "paddlepaddle>=3.0",
+  "paddleocr[doc-parser]>=3.3",
+]
+dev = [
+  "pytest>=8",
+  "reportlab>=4",
+]
+
+[tool.setuptools.packages.find]
+include = ["documouse*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

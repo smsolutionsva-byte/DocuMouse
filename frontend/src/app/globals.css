@@ -1,0 +1,172 @@
+@import "tailwindcss";
+
+/*
+ * DocuMouse design tokens
+ * ------------------------------------------------------------------
+ * Paper & ink: a warm, calm, document-like canvas with near-black ink.
+ * Colour is reserved for meaning:
+ *   cheese  – "this came from here" (source highlights on the document)
+ *   ok      – verified
+ *   attn    – needs your attention
+ *   danger  – something failed
+ *   focus   – keyboard focus
+ */
+:root {
+  --paper: #f6f4ef;
+  --surface: #ffffff;
+  --surface-2: #faf9f6;
+  --sunken: #efece5;
+  --ink: #1b1a17;
+  --ink-2: #4a4740;
+  --ink-3: #7c786f;
+  --ink-4: #a9a59c;
+  --line: #e6e2d9;
+  --line-strong: #d4cfc4;
+
+  --cheese: #ffd84d;
+  --cheese-ink: #6b5200;
+  --ok: #1d7a4c;
+  --ok-soft: #e5f3ea;
+  --attn: #b4500e;
+  --attn-soft: #fdf0e4;
+  --attn-line: #f1c9a5;
+  --danger: #b42318;
+  --danger-soft: #fdecea;
+  --focus: #3a62db;
+  --ear: #f2b8c0;
+
+  --shadow-1: 0 1px 2px rgb(27 26 23 / 0.06);
+  --shadow-2: 0 1px 2px rgb(27 26 23 / 0.05), 0 4px 12px -2px rgb(27 26 23 / 0.08);
+  --shadow-pop: 0 2px 6px rgb(27 26 23 / 0.06), 0 18px 40px -12px rgb(27 26 23 / 0.22);
+
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-sunken: var(--sunken);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-ink-4: var(--ink-4);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-cheese: var(--cheese);
+  --color-cheese-ink: var(--cheese-ink);
+  --color-ok: var(--ok);
+  --color-ok-soft: var(--ok-soft);
+  --color-attn: var(--attn);
+  --color-attn-soft: var(--attn-soft);
+  --color-attn-line: var(--attn-line);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-focus: var(--focus);
+  --color-ear: var(--ear);
+
+  --font-sans: "Instrument Sans Variable", "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Instrument Serif", ui-serif, Georgia, serif;
+
+  --text-2xs: 0.6875rem;
+  --text-2xs--line-height: 1rem;
+
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+
+  --shadow-1: var(--shadow-1);
+  --shadow-2: var(--shadow-2);
+  --shadow-pop: var(--shadow-pop);
+
+  --ease-out: var(--ease-out);
+  --ease-spring: var(--ease-spring);
+
+  --animate-rise: rise 420ms var(--ease-out) both;
+  --animate-fade: fade 240ms var(--ease-out) both;
+  --animate-flash: flash 1400ms var(--ease-out);
+  --animate-scan: scan 2.2s var(--ease-out) infinite;
+  --animate-shimmer: shimmer 1.6s linear infinite;
+
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fade {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  @keyframes flash {
+    0% { background-color: color-mix(in oklab, var(--cheese) 55%, transparent); }
+    100% { background-color: transparent; }
+  }
+  @keyframes scan {
+    0% { transform: translateY(-10%); opacity: 0; }
+    15% { opacity: 1; }
+    85% { opacity: 1; }
+    100% { transform: translateY(1000%); opacity: 0; }
+  }
+  @keyframes shimmer {
+    from { background-position: -200% 0; }
+    to { background-position: 200% 0; }
+  }
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    font-size: 15px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  ::selection {
+    background: color-mix(in oklab, var(--cheese) 70%, transparent);
+    color: var(--ink);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+}
+
+/* Numbers line up in columns everywhere money appears. */
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+.skeleton {
+  background: linear-gradient(90deg, var(--sunken) 0%, var(--surface-2) 50%, var(--sunken) 100%);
+  background-size: 200% 100%;
+  animation: var(--animate-shimmer);
+  border-radius: var(--radius-sm);
+}
+
+/* Thin, quiet scrollbars for the two review panes. */
+.quiet-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-strong) transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
+}
