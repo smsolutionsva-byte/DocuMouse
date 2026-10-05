@@ -1,0 +1,409 @@
+{
+ "engine": "paddleocr-ppstructurev3",
+ "engine_version": "3.7.0",
+ "pages": [
+  {
+   "index": 0,
+   "width": 576,
+   "height": 732
+  }
+ ],
+ "lines": [
+  {
+   "id": "p0-l0",
+   "page": 0,
+   "text": "THE",
+   "bbox": [
+    0.16319,
+    0.06284,
+    0.28646,
+    0.09836
+   ],
+   "confidence": 0.9983
+  },
+  {
+   "id": "p0-l1",
+   "page": 0,
+   "text": "DAILY GRIND CAFE",
+   "bbox": [
+    0.28646,
+    0.06011,
+    0.83681,
+    0.09973
+   ],
+   "confidence": 0.9492
+  },
+  {
+   "id": "p0-l2",
+   "page": 0,
+   "text": "18 Brigade Road, Bengaluru",
+   "bbox": [
+    0.25174,
+    0.12022,
+    0.74653,
+    0.16257
+   ],
+   "confidence": 0.9784
+  },
+  {
+   "id": "p0-l3",
+   "page": 0,
+   "text": "GSTIN 29AAGFT4321L1ZW",
+   "bbox": [
+    0.26736,
+    0.16667,
+    0.7309,
+    0.20082
+   ],
+   "confidence": 0.9951
+  },
+  {
+   "id": "p0-l4",
+   "page": 0,
+   "text": "Receipt No: 88213",
+   "bbox": [
+    0.05729,
+    0.22678,
+    0.40278,
+    0.27049
+   ],
+   "confidence": 0.9923
+  },
+  {
+   "id": "p0-l5",
+   "page": 0,
+   "text": "Date: 03/10/2026 Time: 18:42",
+   "bbox": [
+    0.06076,
+    0.27732,
+    0.63542,
+    0.31011
+   ],
+   "confidence": 0.9892
+  },
+  {
+   "id": "p0-l6",
+   "page": 0,
+   "text": "Cashier: Priya",
+   "bbox": [
+    0.05903,
+    0.32104,
+    0.31944,
+    0.35792
+   ],
+   "confidence": 0.9971
+  },
+  {
+   "id": "p0-l7",
+   "page": 0,
+   "text": "Table: 7",
+   "bbox": [
+    0.34201,
+    0.31967,
+    0.49132,
+    0.35792
+   ],
+   "confidence": 0.9917
+  },
+  {
+   "id": "p0-l8",
+   "page": 0,
+   "text": "Cappuccino x2",
+   "bbox": [
+    0.05729,
+    0.39891,
+    0.34722,
+    0.44126
+   ],
+   "confidence": 0.9923
+  },
+  {
+   "id": "p0-l9",
+   "page": 0,
+   "text": "360.00",
+   "bbox": [
+    0.80208,
+    0.40164,
+    0.94097,
+    0.43579
+   ],
+   "confidence": 0.9989
+  },
+  {
+   "id": "p0-l10",
+   "page": 0,
+   "text": "Masala Chai xl",
+   "bbox": [
+    0.05903,
+    0.44945,
+    0.35243,
+    0.48224
+   ],
+   "confidence": 0.984
+  },
+  {
+   "id": "p0-l11",
+   "page": 0,
+   "text": "90.00",
+   "bbox": [
+    0.82292,
+    0.44945,
+    0.93924,
+    0.48497
+   ],
+   "confidence": 0.9983
+  },
+  {
+   "id": "p0-l12",
+   "page": 0,
+   "text": "Blueberry Muffin x2",
+   "bbox": [
+    0.05903,
+    0.49727,
+    0.43924,
+    0.53689
+   ],
+   "confidence": 0.9597
+  },
+  {
+   "id": "p0-l13",
+   "page": 0,
+   "text": "280.00",
+   "bbox": [
+    0.79861,
+    0.49727,
+    0.93924,
+    0.53279
+   ],
+   "confidence": 0.999
+  },
+  {
+   "id": "p0-l14",
+   "page": 0,
+   "text": "Paneer Sandwich xl",
+   "bbox": [
+    0.06076,
+    0.54781,
+    0.44618,
+    0.5806
+   ],
+   "confidence": 0.9556
+  },
+  {
+   "id": "p0-l15",
+   "page": 0,
+   "text": "220.00",
+   "bbox": [
+    0.80035,
+    0.54372,
+    0.94097,
+    0.58333
+   ],
+   "confidence": 0.9985
+  },
+  {
+   "id": "p0-l16",
+   "page": 0,
+   "text": "Subtotal",
+   "bbox": [
+    0.05903,
+    0.61339,
+    0.22396,
+    0.64754
+   ],
+   "confidence": 0.9995
+  },
+  {
+   "id": "p0-l17",
+   "page": 0,
+   "text": "950.00",
+   "bbox": [
+    0.80035,
+    0.61339,
+    0.93924,
+    0.64754
+   ],
+   "confidence": 0.9987
+  },
+  {
+   "id": "p0-l18",
+   "page": 0,
+   "text": "CGST 2.5%",
+   "bbox": [
+    0.05903,
+    0.6612,
+    0.27778,
+    0.69809
+   ],
+   "confidence": 0.9908
+  },
+  {
+   "id": "p0-l19",
+   "page": 0,
+   "text": "23.75",
+   "bbox": [
+    0.82465,
+    0.66257,
+    0.94097,
+    0.69672
+   ],
+   "confidence": 0.9997
+  },
+  {
+   "id": "p0-l20",
+   "page": 0,
+   "text": "SGST 2.5%",
+   "bbox": [
+    0.05903,
+    0.71038,
+    0.27431,
+    0.74727
+   ],
+   "confidence": 0.9923
+  },
+  {
+   "id": "p0-l21",
+   "page": 0,
+   "text": "23.75",
+   "bbox": [
+    0.82292,
+    0.71038,
+    0.94097,
+    0.7459
+   ],
+   "confidence": 0.9995
+  },
+  {
+   "id": "p0-l22",
+   "page": 0,
+   "text": "TOTAL",
+   "bbox": [
+    0.05556,
+    0.75683,
+    0.23438,
+    0.80055
+   ],
+   "confidence": 0.9996
+  },
+  {
+   "id": "p0-l23",
+   "page": 0,
+   "text": "₹997.50",
+   "bbox": [
+    0.72222,
+    0.76093,
+    0.94097,
+    0.79781
+   ],
+   "confidence": 0.8844
+  },
+  {
+   "id": "p0-l24",
+   "page": 0,
+   "text": "Paid by UPI Ref 6274 1189 2201",
+   "bbox": [
+    0.05903,
+    0.82923,
+    0.60417,
+    0.86339
+   ],
+   "confidence": 0.9705
+  },
+  {
+   "id": "p0-l25",
+   "page": 0,
+   "text": "Thank you! Visit again",
+   "bbox": [
+    0.2934,
+    0.90301,
+    0.70312,
+    0.94262
+   ],
+   "confidence": 0.9684
+  }
+ ],
+ "blocks": [
+  {
+   "id": "p0-b0",
+   "page": 0,
+   "label": "doc_title",
+   "bbox": [
+    0.15799,
+    0.05464,
+    0.8316,
+    0.0929
+   ],
+   "text": "THE DAILY GRIND CAFE ",
+   "order": 1
+  },
+  {
+   "id": "p0-b1",
+   "page": 0,
+   "label": "text",
+   "bbox": [
+    0.25,
+    0.11885,
+    0.74306,
+    0.18989
+   ],
+   "text": "18 Brigade Road, Bengaluru GSTIN 29AAGFT4321L1ZW ",
+   "order": 2
+  },
+  {
+   "id": "p0-b2",
+   "page": 0,
+   "label": "text",
+   "bbox": [
+    0.05556,
+    0.22678,
+    0.63542,
+    0.34699
+   ],
+   "text": "Receipt No: 88213Date: 03/10/2026 Time: 18:42Cashier: Priya Table: 7",
+   "order": 3
+  },
+  {
+   "id": "p0-b3",
+   "page": 0,
+   "label": "text",
+   "bbox": [
+    0.05382,
+    0.38934,
+    0.9375,
+    0.79235
+   ],
+   "text": "Cappuccino x2360.00Masala Chai xl 90.00Blueberry Muffin x2280.00Paneer Sandwich xl 220.00Subtotal 950.00CGST 2.5%23.75SGST 2.5%23.75TOTAL ₹997.50",
+   "order": 4
+  },
+  {
+   "id": "p0-b4",
+   "page": 0,
+   "label": "text",
+   "bbox": [
+    0.05556,
+    0.82377,
+    0.60243,
+    0.85246
+   ],
+   "text": "Paid by UPI Ref 6274 1189 2201",
+   "order": 5
+  },
+  {
+   "id": "p0-b5",
+   "page": 0,
+   "label": "text",
+   "bbox": [
+    0.28993,
+    0.90027,
+    0.70312,
+    0.93169
+   ],
+   "text": "Thank you! Visit again ",
+   "order": 6
+  }
+ ],
+ "tables": [],
+ "meta": {
+  "preset": "fast"
+ }
+}

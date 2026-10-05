@@ -1,0 +1,832 @@
+{
+ "engine": "paddleocr-ppstructurev3",
+ "engine_version": "3.7.0",
+ "pages": [
+  {
+   "index": 0,
+   "width": 1654,
+   "height": 2339
+  }
+ ],
+ "lines": [
+  {
+   "id": "p0-l0",
+   "page": 0,
+   "text": "Nimbus Cloud Services Pvt Ltd",
+   "bbox": [
+    0.09553,
+    0.06627,
+    0.53144,
+    0.08508
+   ],
+   "confidence": 0.9617
+  },
+  {
+   "id": "p0-l1",
+   "page": 0,
+   "text": "TAX INVOICE",
+   "bbox": [
+    0.72128,
+    0.0667,
+    0.90447,
+    0.08422
+   ],
+   "confidence": 0.9824
+  },
+  {
+   "id": "p0-l2",
+   "page": 0,
+   "text": "4th Floor, Prestige Tower, MG Road",
+   "bbox": [
+    0.09371,
+    0.09619,
+    0.37969,
+    0.11201
+   ],
+   "confidence": 0.9754
+  },
+  {
+   "id": "p0-l3",
+   "page": 0,
+   "text": "Invoice No: NCS/2026/0417",
+   "bbox": [
+    0.68259,
+    0.09577,
+    0.90508,
+    0.11159
+   ],
+   "confidence": 0.9943
+  },
+  {
+   "id": "p0-l4",
+   "page": 0,
+   "text": "Bengaluru, Karnataka 560001",
+   "bbox": [
+    0.09432,
+    0.11244,
+    0.33676,
+    0.12698
+   ],
+   "confidence": 0.9977
+  },
+  {
+   "id": "p0-l5",
+   "page": 0,
+   "text": "Invoice Date: 12/09/2026",
+   "bbox": [
+    0.69952,
+    0.11201,
+    0.90508,
+    0.12569
+   ],
+   "confidence": 0.9717
+  },
+  {
+   "id": "p0-l6",
+   "page": 0,
+   "text": "GSTIN: 29AABCN1234M1ZD",
+   "bbox": [
+    0.09492,
+    0.1274,
+    0.31923,
+    0.14066
+   ],
+   "confidence": 0.9771
+  },
+  {
+   "id": "p0-l7",
+   "page": 0,
+   "text": "Due Date: 12/10/2026",
+   "bbox": [
+    0.72491,
+    0.1274,
+    0.90447,
+    0.14066
+   ],
+   "confidence": 0.9964
+  },
+  {
+   "id": "p0-l8",
+   "page": 0,
+   "text": "Bill To:",
+   "bbox": [
+    0.0919,
+    0.17529,
+    0.15296,
+    0.19239
+   ],
+   "confidence": 0.9033
+  },
+  {
+   "id": "p0-l9",
+   "page": 0,
+   "text": "Mouse & Cheese Traders",
+   "bbox": [
+    0.09371,
+    0.19324,
+    0.29625,
+    0.20735
+   ],
+   "confidence": 0.9715
+  },
+  {
+   "id": "p0-l10",
+   "page": 0,
+   "text": "22 Lake Road, Kolkata 700029",
+   "bbox": [
+    0.09371,
+    0.20821,
+    0.34039,
+    0.22189
+   ],
+   "confidence": 0.9657
+  },
+  {
+   "id": "p0-l11",
+   "page": 0,
+   "text": "GSTIN: 19AAFCM5678Q1ZF",
+   "bbox": [
+    0.09492,
+    0.22403,
+    0.31439,
+    0.23685
+   ],
+   "confidence": 0.9817
+  },
+  {
+   "id": "p0-l12",
+   "page": 0,
+   "text": "#",
+   "bbox": [
+    0.0919,
+    0.2702,
+    0.11306,
+    0.28687
+   ],
+   "confidence": 0.8672
+  },
+  {
+   "id": "p0-l13",
+   "page": 0,
+   "text": "Description",
+   "bbox": [
+    0.13543,
+    0.2702,
+    0.24486,
+    0.28773
+   ],
+   "confidence": 0.9997
+  },
+  {
+   "id": "p0-l14",
+   "page": 0,
+   "text": "HSN/SAC",
+   "bbox": [
+    0.47884,
+    0.27106,
+    0.56288,
+    0.28602
+   ],
+   "confidence": 0.9983
+  },
+  {
+   "id": "p0-l15",
+   "page": 0,
+   "text": "Qty",
+   "bbox": [
+    0.58162,
+    0.26892,
+    0.62213,
+    0.28901
+   ],
+   "confidence": 0.9999
+  },
+  {
+   "id": "p0-l16",
+   "page": 0,
+   "text": "Rate",
+   "bbox": [
+    0.64389,
+    0.26892,
+    0.69287,
+    0.28773
+   ],
+   "confidence": 0.9997
+  },
+  {
+   "id": "p0-l17",
+   "page": 0,
+   "text": "Amount",
+   "bbox": [
+    0.77328,
+    0.2702,
+    0.85006,
+    0.28602
+   ],
+   "confidence": 0.9992
+  },
+  {
+   "id": "p0-l18",
+   "page": 0,
+   "text": "1",
+   "bbox": [
+    0.0925,
+    0.29628,
+    0.10883,
+    0.31424
+   ],
+   "confidence": 0.9978
+  },
+  {
+   "id": "p0-l19",
+   "page": 0,
+   "text": "Cloud hosting - Standard plan (Sep)",
+   "bbox": [
+    0.13724,
+    0.29671,
+    0.42443,
+    0.31253
+   ],
+   "confidence": 0.9708
+  },
+  {
+   "id": "p0-l20",
+   "page": 0,
+   "text": "998315",
+   "bbox": [
+    0.47823,
+    0.29585,
+    0.54414,
+    0.31253
+   ],
+   "confidence": 0.9998
+  },
+  {
+   "id": "p0-l21",
+   "page": 0,
+   "text": "1",
+   "bbox": [
+    0.61427,
+    0.29585,
+    0.6312,
+    0.31466
+   ],
+   "confidence": 0.998
+  },
+  {
+   "id": "p0-l22",
+   "page": 0,
+   "text": "12,000.00",
+   "bbox": [
+    0.67291,
+    0.29628,
+    0.75756,
+    0.31124
+   ],
+   "confidence": 0.9991
+  },
+  {
+   "id": "p0-l23",
+   "page": 0,
+   "text": "12,000.00",
+   "bbox": [
+    0.82104,
+    0.29585,
+    0.90629,
+    0.31167
+   ],
+   "confidence": 0.9984
+  },
+  {
+   "id": "p0-l24",
+   "page": 0,
+   "text": "2",
+   "bbox": [
+    0.0925,
+    0.32108,
+    0.10943,
+    0.33818
+   ],
+   "confidence": 0.9954
+  },
+  {
+   "id": "p0-l25",
+   "page": 0,
+   "text": "Managed database add-on",
+   "bbox": [
+    0.13664,
+    0.32193,
+    0.35187,
+    0.33647
+   ],
+   "confidence": 0.9982
+  },
+  {
+   "id": "p0-l26",
+   "page": 0,
+   "text": "998315",
+   "bbox": [
+    0.47884,
+    0.32193,
+    0.54414,
+    0.33732
+   ],
+   "confidence": 0.9999
+  },
+  {
+   "id": "p0-l27",
+   "page": 0,
+   "text": "2",
+   "bbox": [
+    0.61185,
+    0.32065,
+    0.6312,
+    0.33989
+   ],
+   "confidence": 0.9949
+  },
+  {
+   "id": "p0-l28",
+   "page": 0,
+   "text": "2,500.00",
+   "bbox": [
+    0.68259,
+    0.32193,
+    0.75877,
+    0.33732
+   ],
+   "confidence": 0.9975
+  },
+  {
+   "id": "p0-l29",
+   "page": 0,
+   "text": "5,000.00",
+   "bbox": [
+    0.83071,
+    0.32193,
+    0.90629,
+    0.33732
+   ],
+   "confidence": 0.9978
+  },
+  {
+   "id": "p0-l30",
+   "page": 0,
+   "text": "3",
+   "bbox": [
+    0.0925,
+    0.34673,
+    0.10943,
+    0.36383
+   ],
+   "confidence": 0.997
+  },
+  {
+   "id": "p0-l31",
+   "page": 0,
+   "text": "SSL certificate (l year)",
+   "bbox": [
+    0.13603,
+    0.34758,
+    0.32225,
+    0.36298
+   ],
+   "confidence": 0.9559
+  },
+  {
+   "id": "p0-l32",
+   "page": 0,
+   "text": "998319",
+   "bbox": [
+    0.47884,
+    0.34758,
+    0.54474,
+    0.36298
+   ],
+   "confidence": 0.9996
+  },
+  {
+   "id": "p0-l33",
+   "page": 0,
+   "text": "1",
+   "bbox": [
+    0.61427,
+    0.34716,
+    0.63059,
+    0.36511
+   ],
+   "confidence": 0.9982
+  },
+  {
+   "id": "p0-l34",
+   "page": 0,
+   "text": "1,500.00",
+   "bbox": [
+    0.68259,
+    0.34587,
+    0.75937,
+    0.36383
+   ],
+   "confidence": 0.997
+  },
+  {
+   "id": "p0-l35",
+   "page": 0,
+   "text": "1,500.00",
+   "bbox": [
+    0.83192,
+    0.34758,
+    0.90568,
+    0.36298
+   ],
+   "confidence": 0.9981
+  },
+  {
+   "id": "p0-l36",
+   "page": 0,
+   "text": "4",
+   "bbox": [
+    0.09129,
+    0.37153,
+    0.11064,
+    0.38863
+   ],
+   "confidence": 0.9988
+  },
+  {
+   "id": "p0-l37",
+   "page": 0,
+   "text": "Support hours",
+   "bbox": [
+    0.13603,
+    0.37281,
+    0.25393,
+    0.38906
+   ],
+   "confidence": 0.998
+  },
+  {
+   "id": "p0-l38",
+   "page": 0,
+   "text": "998313",
+   "bbox": [
+    0.47884,
+    0.37238,
+    0.54414,
+    0.38777
+   ],
+   "confidence": 0.9999
+  },
+  {
+   "id": "p0-l39",
+   "page": 0,
+   "text": "3",
+   "bbox": [
+    0.61427,
+    0.37238,
+    0.6312,
+    0.38948
+   ],
+   "confidence": 0.9972
+  },
+  {
+   "id": "p0-l40",
+   "page": 0,
+   "text": "1,200.00",
+   "bbox": [
+    0.6838,
+    0.37281,
+    0.75816,
+    0.3882
+   ],
+   "confidence": 0.9978
+  },
+  {
+   "id": "p0-l41",
+   "page": 0,
+   "text": "3,600.00",
+   "bbox": [
+    0.83132,
+    0.37281,
+    0.90568,
+    0.3882
+   ],
+   "confidence": 0.9978
+  },
+  {
+   "id": "p0-l42",
+   "page": 0,
+   "text": "Sub Total",
+   "bbox": [
+    0.55441,
+    0.41556,
+    0.63603,
+    0.43053
+   ],
+   "confidence": 0.9806
+  },
+  {
+   "id": "p0-l43",
+   "page": 0,
+   "text": "22,100.00",
+   "bbox": [
+    0.81016,
+    0.41556,
+    0.89541,
+    0.43053
+   ],
+   "confidence": 0.9983
+  },
+  {
+   "id": "p0-l44",
+   "page": 0,
+   "text": "CGST @ 9%",
+   "bbox": [
+    0.55441,
+    0.43566,
+    0.65417,
+    0.45233
+   ],
+   "confidence": 0.9705
+  },
+  {
+   "id": "p0-l45",
+   "page": 0,
+   "text": "1,989.00",
+   "bbox": [
+    0.82104,
+    0.43651,
+    0.89661,
+    0.4519
+   ],
+   "confidence": 0.9983
+  },
+  {
+   "id": "p0-l46",
+   "page": 0,
+   "text": "SGST @ 9%",
+   "bbox": [
+    0.552,
+    0.45532,
+    0.65478,
+    0.47413
+   ],
+   "confidence": 0.908
+  },
+  {
+   "id": "p0-l47",
+   "page": 0,
+   "text": "1,989.00",
+   "bbox": [
+    0.82104,
+    0.45703,
+    0.89661,
+    0.47242
+   ],
+   "confidence": 0.9983
+  },
+  {
+   "id": "p0-l48",
+   "page": 0,
+   "text": "Grand Total",
+   "bbox": [
+    0.55502,
+    0.47884,
+    0.66747,
+    0.4938
+   ],
+   "confidence": 0.9977
+  },
+  {
+   "id": "p0-l49",
+   "page": 0,
+   "text": "₹26,078.00",
+   "bbox": [
+    0.78476,
+    0.47755,
+    0.89601,
+    0.4938
+   ],
+   "confidence": 0.9517
+  },
+  {
+   "id": "p0-l50",
+   "page": 0,
+   "text": "Bank: HDFC Bank·A/C 50200012345678·IFSC HDFC0000123",
+   "bbox": [
+    0.09432,
+    0.54596,
+    0.54414,
+    0.55964
+   ],
+   "confidence": 0.9764
+  },
+  {
+   "id": "p0-l51",
+   "page": 0,
+   "text": "Thank you for your business.",
+   "bbox": [
+    0.09432,
+    0.56007,
+    0.3029,
+    0.57418
+   ],
+   "confidence": 0.9929
+  }
+ ],
+ "blocks": [
+  {
+   "id": "p0-b0",
+   "page": 0,
+   "label": "paragraph_title",
+   "bbox": [
+    0.0925,
+    0.06584,
+    0.52902,
+    0.08251
+   ],
+   "text": "Nimbus Cloud Services Pvt Ltd ",
+   "order": 1
+  },
+  {
+   "id": "p0-b1",
+   "page": 0,
+   "label": "text",
+   "bbox": [
+    0.09129,
+    0.09662,
+    0.37727,
+    0.13809
+   ],
+   "text": "4th Floor, Prestige Tower, MG Road Bengaluru, Karnataka 560001GSTIN: 29AABCN1234M1ZD ",
+   "order": 2
+  },
+  {
+   "id": "p0-b2",
+   "page": 0,
+   "label": "text",
+   "bbox": [
+    0.09069,
+    0.17785,
+    0.33918,
+    0.23472
+   ],
+   "text": "Bill To:Mouse & Cheese Traders 22 Lake Road, Kolkata 700029GSTIN: 19AAFCM5678Q1ZF ",
+   "order": 3
+  },
+  {
+   "id": "p0-b3",
+   "page": 0,
+   "label": "paragraph_title",
+   "bbox": [
+    0.72007,
+    0.06627,
+    0.90145,
+    0.08209
+   ],
+   "text": "TAX INVOICE ",
+   "order": 4
+  },
+  {
+   "id": "p0-b4",
+   "page": 0,
+   "label": "text",
+   "bbox": [
+    0.68259,
+    0.09705,
+    0.90266,
+    0.13852
+   ],
+   "text": "Invoice No: NCS/2026/0417Invoice Date: 12/09/2026Due Date: 12/10/2026",
+   "order": 5
+  },
+  {
+   "id": "p0-b5",
+   "page": 0,
+   "label": "table",
+   "bbox": [
+    0.08404,
+    0.26422,
+    0.91294,
+    0.39248
+   ],
+   "text": "",
+   "order": null
+  },
+  {
+   "id": "p0-b6",
+   "page": 0,
+   "label": "text",
+   "bbox": [
+    0.09069,
+    0.54553,
+    0.54293,
+    0.57118
+   ],
+   "text": "Bank: HDFC Bank·A/C 50200012345678·IFSC HDFC0000123Thank you for your business.\n",
+   "order": 6
+  },
+  {
+   "id": "p0-b7",
+   "page": 0,
+   "label": "table",
+   "bbox": [
+    0.54534,
+    0.41385,
+    0.90387,
+    0.49337
+   ],
+   "text": "",
+   "order": null
+  }
+ ],
+ "tables": [
+  {
+   "id": "p0-t0",
+   "page": 0,
+   "bbox": [
+    0.08404,
+    0.26422,
+    0.91294,
+    0.39248
+   ],
+   "rows": [
+    [
+     "#",
+     "Description",
+     "HSN/SAC",
+     "Qty",
+     "Rate",
+     "Amount"
+    ],
+    [
+     "1",
+     "Cloud hosting - Standard plan (Sep)",
+     "998315",
+     "1",
+     "12,000.00",
+     "12,000.00"
+    ],
+    [
+     "2",
+     "Managed database add-on",
+     "998315",
+     "2",
+     "2,500.00",
+     "5,000.00"
+    ],
+    [
+     "3",
+     "SSL certificate (l year)",
+     "998319",
+     "1",
+     "1,500.00",
+     "1,500.00"
+    ],
+    [
+     "4",
+     "Support hours",
+     "998313",
+     "3",
+     "1,200.00",
+     "3,600.00"
+    ]
+   ],
+   "header_rows": 0,
+   "html": "<html><body><table><tr><td>#</td><td>Description</td><td>HSN/SAC</td><td>Qty</td><td>Rate</td><td>Amount</td></tr><tr><td>1</td><td>Cloud hosting - Standard plan (Sep)</td><td>998315</td><td>1</td><td>12,000.00</td><td>12,000.00</td></tr><tr><td>2</td><td>Managed database add-on</td><td>998315</td><td>2</td><td>2,500.00</td><td>5,000.00</td></tr><tr><td>3</td><td>SSL certificate (l year)</td><td>998319</td><td>1</td><td>1,500.00</td><td>1,500.00</td></tr><tr><td>4</td><td>Support hours</td><td>998313</td><td>3</td><td>1,200.00</td><td>3,600.00</td></tr></table></body></html>"
+  },
+  {
+   "id": "p0-t1",
+   "page": 0,
+   "bbox": [
+    0.54534,
+    0.41385,
+    0.90387,
+    0.49337
+   ],
+   "rows": [
+    [
+     "Sub Total",
+     "22,100.00"
+    ],
+    [
+     "CGST @ 9%",
+     "1,989.00"
+    ],
+    [
+     "SGST @ 9%",
+     "1,989.00"
+    ],
+    [
+     "Grand Total",
+     "₹26,078.00"
+    ]
+   ],
+   "header_rows": 0,
+   "html": "<html><body><table><tr><td>Sub Total</td><td>22,100.00</td></tr><tr><td>CGST @ 9%</td><td>1,989.00</td></tr><tr><td>SGST @ 9%</td><td>1,989.00</td></tr><tr><td>Grand Total</td><td>₹26,078.00</td></tr></table></body></html>"
+  }
+ ],
+ "meta": {
+  "preset": "fast"
+ }
+}
