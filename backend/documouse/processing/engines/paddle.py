@@ -71,6 +71,8 @@ class PaddleStructureEngine:
                 kwargs["lang"] = self.settings.ocr_lang
             if self.settings.ocr_device:
                 kwargs["device"] = self.settings.ocr_device
+            if self.settings.ocr_enable_mkldnn is not None:
+                kwargs["enable_mkldnn"] = self.settings.ocr_enable_mkldnn
             try:
                 self._pipeline = PPStructureV3(**kwargs)
             except Exception as exc:  # model download / runtime problems

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from functools import lru_cache
 from pathlib import Path
 from typing import Literal
@@ -37,6 +38,9 @@ class Settings(BaseSettings):
     ocr_preset: Literal["fast", "accurate"] = "fast"
     ocr_device: str | None = None  # e.g. "cpu", "gpu:0"; None lets Paddle decide
     ocr_detect_orientation: bool = True
+    # oneDNN (MKL-DNN) CPU acceleration. None keeps PaddleOCR's default. PaddlePaddle 3.3.x
+    # fails with "ConvertPirAttribute2RuntimeAttribute not support" when it's on, see README.
+    ocr_enable_mkldnn: bool | None = None
     processing_workers: int = 1
 
     # LLM (optional). Any OpenAI-compatible chat completions endpoint works.
@@ -57,6 +61,17 @@ class Settings(BaseSettings):
         return self.llm_base_url or LLM_PRESETS.get(self.llm_provider)
 
 
+def _export_paddle_env(env_file: Path = Path(".env")) -> None:
+    """PaddleX reads PADDLE_PDX_* from the process environment, so pass those through from .env."""
+    if not env_file.is_file():
+        return
+    for line in env_file.read_text().splitlines():
+        key, sep, value = line.strip().partition("=")
+        if sep and key.startswith("PADDLE_") and key not in os.environ:
+            os.environ[key] = value.strip().strip("\"'")
+
+
 @lru_cache
 def get_settings() -> Settings:
+    _export_paddle_env()
     return Settings()
