@@ -63,7 +63,8 @@ flowchart TD
     Engine --> Raw["RawDocument<br/>text lines + boxes · layout · tables"]
     Raw --> Classify[Classification]
     Classify --> Extract["Extraction<br/>rules ± LLM (fact-checked)"]
-    Extract --> Validate[Deterministic validation]
+    Extract --> Cross["Cross-check (optional)<br/>second reader: PaddleOCR-VL or a vision model"]
+    Cross --> Validate[Deterministic validation]
     Validate --> V1[Version 1]
     API --> Edit["Edit engine<br/>validated operations"]
     Assistant["AI assistant<br/>request → operations"] --> Edit
@@ -82,6 +83,7 @@ backend/documouse/
   editing/         operations.py (the only way data changes), assistant.py, preview.py
   versioning.py    immutable versions, undo/redo/restore
   export/          CSV
+  crosscheck/      optional second reader (PaddleOCR-VL, vision models) + field-by-field comparison
   llm/             provider abstraction (any OpenAI-compatible endpoint)
   storage/         local disk (S3-compatible can be added behind the same interface)
 frontend/src/
@@ -176,6 +178,60 @@ DOCUMOUSE_LLM_API_KEY=<key>          # stays on the server
 Every value the LLM proposes must be found in PaddleOCR's text, or it's discarded (shown only as a suggestion).
 Every edit it proposes is a validated operation that you preview and approve.
 
+### Optional: a second reader (cross-check)
+
+A second, independent reader reads the page again, and DocuMouse compares the **business name, date and total**:
+
+- **Different value** → flagged for review, with the other reading as a one-click suggestion
+- **Only the second reader found it** → offered as a suggestion, never filled in on its own
+- **Same value** → from a vision model, this counts as confirmation, like a total that adds up. From PaddleOCR-VL
+  it doesn't: its text goes through DocuMouse's own rules, so if the rules pick the wrong line, both readings agree
+  on the same wrong value. PaddleOCR-VL can flag a value, not confirm it.
+
+The second reader never changes a value. It reads the first and last page only. Three free ways to run one:
+
+| Second reader | Cost | Where your documents go |
+| --- | --- | --- |
+| [PaddleOCR-VL](https://huggingface.co/PaddlePaddle/PaddleOCR-VL-1.6-GGUF) on your machine, via llama.cpp | Free. ~2 GB download, ~3 GB RAM, ~1 min per receipt on 4 CPU cores | Nowhere |
+| PaddleOCR-VL through [PaddleOCR's hosted API](https://aistudio.baidu.com/paddleocr) | Free quota | Baidu's servers |
+| A vision model on [Gemini's free tier](https://ai.google.dev/gemini-api/docs/pricing), or any OpenAI-compatible vision endpoint | Free, rate limited | Google. Free-tier content may be used to improve Google's products |
+
+Don't send clients' documents to a hosted service unless they're fine with it.
+
+**PaddleOCR-VL on your machine** ([llama.cpp](https://github.com/ggml-org/llama.cpp) b8110 or newer):
+
+```bash
+mkdir -p models/paddleocr-vl && cd models/paddleocr-vl
+for f in PaddleOCR-VL-1.6-GGUF.gguf PaddleOCR-VL-1.6-GGUF-mmproj.gguf; do
+  curl -LO https://huggingface.co/PaddlePaddle/PaddleOCR-VL-1.6-GGUF/resolve/main/$f
+done
+llama-server -m PaddleOCR-VL-1.6-GGUF.gguf --mmproj PaddleOCR-VL-1.6-GGUF-mmproj.gguf \
+  --port 8080 --temp 0 --special   # --special keeps the text positions in the output
+```
+
+```bash
+# backend/.env
+DOCUMOUSE_SECOND_READER=paddleocr_vl
+DOCUMOUSE_PADDLEOCR_VL_URL=http://localhost:8080/v1
+```
+
+**PaddleOCR's hosted API:** create a task at [aistudio.baidu.com/paddleocr](https://aistudio.baidu.com/paddleocr/task)
+to get an API URL (ending in `/layout-parsing`) and a token, then set `DOCUMOUSE_SECOND_READER=paddleocr_vl`,
+`DOCUMOUSE_PADDLEOCR_VL_URL=<API URL>` and `DOCUMOUSE_PADDLEOCR_VL_TOKEN=<token>`.
+
+**Gemini (or another vision model):**
+
+```bash
+DOCUMOUSE_SECOND_READER=vision
+DOCUMOUSE_VISION_PROVIDER=gemini          # or openrouter, github, ollama, lmstudio, openai_compatible
+DOCUMOUSE_VISION_API_KEY=<key from Google AI Studio>
+# DOCUMOUSE_VISION_MODEL=gemini-3.8-flash # the default for gemini
+```
+
+What's been tested: PaddleOCR-VL through llama.cpp, on real SROIE receipts (results will be added to
+[docs/evaluation.md](docs/evaluation.md) when the run finishes). The hosted PaddleOCR API and the vision-model path
+are covered by tests against their request formats, but haven't been run against the live services yet.
+
 ## Environment variables
 
 All backend settings use the `DOCUMOUSE_` prefix. See [`backend/.env.example`](backend/.env.example) for the full list.
@@ -193,6 +249,9 @@ All backend settings use the `DOCUMOUSE_` prefix. See [`backend/.env.example`](b
 | `DOCUMOUSE_PROCESSING_WORKERS` | `1` | Documents processed in parallel |
 | `DOCUMOUSE_LLM_PROVIDER` | `none` | `groq`, `openrouter`, `ollama`, `lmstudio`, `openai_compatible` |
 | `DOCUMOUSE_LLM_MODEL` / `_API_KEY` / `_BASE_URL` | – | LLM connection |
+| `DOCUMOUSE_SECOND_READER` | `none` | `paddleocr_vl` or `vision`: cross-check name, date and total with a second reader |
+| `DOCUMOUSE_PADDLEOCR_VL_URL` / `_TOKEN` | – | PaddleOCR-VL server (`…/v1`) or hosted API (`…/layout-parsing`) |
+| `DOCUMOUSE_VISION_PROVIDER` / `_MODEL` / `_API_KEY` / `_BASE_URL` | `gemini` | Vision model for `DOCUMOUSE_SECOND_READER=vision` |
 | `PADDLE_PDX_MODEL_SOURCE` | `huggingface` | PaddleOCR model download host |
 | `PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK` | – | `True` skips the host check at startup once models are downloaded |
 | `DOCUMOUSE_API_URL` (frontend) | `http://localhost:8000` | Where Next.js proxies `/api` |
@@ -204,6 +263,7 @@ Built deliberately small. Next up, roughly in order:
 - [x] Run the real PaddleOCR pipeline end to end (PDF, scan, receipt) and tune the extractor on its output
 - [x] Receipt line items when PP-StructureV3 doesn't detect a table
 - [x] Benchmark on real scanned receipts and forms (SROIE, FUNSD), see [docs/evaluation.md](docs/evaluation.md)
+- [x] Cross-check key fields with a second, independent reader (PaddleOCR-VL or a vision model)
 - [ ] Improve business-name extraction (61% on SROIE): logo-only names, brand vs legal entity
 - [ ] A public benchmark for invoices (including Indian GST invoices), plus phone photos
 - [ ] Authentication and per-user workspaces (currently **single-user, no login**: run it locally or behind your own auth)

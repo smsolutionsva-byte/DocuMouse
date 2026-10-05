@@ -181,17 +181,21 @@ def score(args, *, cross_check: bool) -> None:
                 s["wrong_silent" if status == "verified" else "wrong_flagged"] += 1
                 if key == "company" and SequenceMatcher(None, norm_text(truth), norm_text(got)).ratio() > 0.9:
                     s["near_miss"] += 1
+            suggestion = data.fields[fkey].suggestion if fkey in data.fields else None
+            if (got is None or not same(key, truth, got)) and suggestion and same(key, truth, suggestion.value):
+                s["right_suggestion"] += 1  # missing or wrong, but one click away
             if (got is None or not same(key, truth, got)) and len(errors) < args.show_errors * 3:
                 errors.append(f"{row['key']} {key:7} truth={truth!r:45} got={got!r} [{status}]")
 
     print(f"SROIE {args.split}: {used} receipts scored in {time.time() - seconds:.1f}s")
     print(f"classified as: {dict(types)}")
-    print(f"{'field':8} {'correct':>8} {'missing':>8} {'wrong':>6} {'wrong but verified':>19} {'correct & verified':>19}")
+    print(f"{'field':8} {'correct':>8} {'missing':>8} {'wrong':>6} {'wrong but verified':>19} {'correct & verified':>19}"
+          f" {'right suggestion':>17}")
     for key in FIELD_MAP:
         s = stats[key]
         n = s["total"] or 1
         print(f"{key:8} {s['correct'] / n:8.1%} {s['missing'] / n:8.1%} {s['wrong'] / n:6.1%} "
-              f"{s['wrong_silent'] / n:19.1%} {s['correct_verified'] / n:19.1%}")
+              f"{s['wrong_silent'] / n:19.1%} {s['correct_verified'] / n:19.1%} {s['right_suggestion'] / n:17.1%}")
     flagged = sum(1 for r in review_counts if r)
     print(f"documents with something to check: {flagged}/{len(review_counts)}")
     print("checks:", dict(sorted(checks.items())))
