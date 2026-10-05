@@ -20,7 +20,7 @@ FIXTURES = Path(__file__).parent / "fixtures_real"
 
 
 def load(name: str) -> RawDocument:
-    return RawDocument.model_validate_json((FIXTURES / f"{name}.raw.json").read_text())
+    return RawDocument.model_validate_json((FIXTURES / f"{name}.raw.json").read_bytes())
 
 
 INVOICE_EXPECTED = {

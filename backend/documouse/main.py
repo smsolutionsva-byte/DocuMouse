@@ -7,6 +7,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .api.documents import router as documents_router
+from .auth import TokenAuthMiddleware
 from .config import get_settings
 from .db import create_tables
 from .processing import runner
@@ -31,6 +32,7 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+    app.add_middleware(TokenAuthMiddleware)
     app.include_router(documents_router)
 
     @app.get("/api/health")

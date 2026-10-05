@@ -620,5 +620,6 @@ def _ambiguity_note(raw: str, value: date, dayfirst: bool) -> str:
         pass
     if other is None:
         return ""
-    fmt = "%-d %B %Y"
-    return f"“{raw}” could mean {value.strftime(fmt)} or {other.strftime(fmt)}."
+    val_str = f"{value.day} {value.strftime('%B %Y')}"
+    other_str = f"{other.day} {other.strftime('%B %Y')}"
+    return f"“{raw}” could mean {val_str} or {other_str}."

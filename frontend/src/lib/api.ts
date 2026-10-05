@@ -10,6 +10,12 @@ import type {
   VersionInfo,
 } from "./types";
 
+function getToken(): string | undefined {
+  if (typeof document === "undefined") return undefined;
+  const match = document.cookie.match(/(?:^|; )documouse_token=([^;]*)/);
+  return match ? decodeURIComponent(match[1]) : undefined;
+}
+
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -21,10 +27,14 @@ export class ApiError extends Error {
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   let res: Response;
+  const token = getToken();
+  const headers: Record<string, string> = {};
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+  if (init?.body && !(init.body instanceof FormData)) headers["Content-Type"] = "application/json";
   try {
     res = await fetch(path, {
       ...init,
-      headers: init?.body && !(init.body instanceof FormData) ? { "Content-Type": "application/json", ...init?.headers } : init?.headers,
+      headers: { ...headers, ...init?.headers },
     });
   } catch {
     throw new ApiError("DocuMouse can't reach its server. Is the backend running?", 0);
@@ -86,7 +96,10 @@ export function uploadFile(
 ): Promise<DocumentSummary> {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
-    xhr.open("POST", "/api/documents");
+    const uploadUrl = process.env.NEXT_PUBLIC_DOCUMOUSE_UPLOAD_URL || "/api/documents";
+    xhr.open("POST", uploadUrl);
+    const authToken = getToken();
+    if (authToken) xhr.setRequestHeader("Authorization", `Bearer ${authToken}`);
     xhr.upload.onprogress = (e) => e.lengthComputable && onProgress(e.loaded / e.total);
     xhr.onload = () => {
       let body: { detail?: string } | DocumentSummary | null = null;

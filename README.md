@@ -85,7 +85,7 @@ backend/documouse/
   export/          CSV
   crosscheck/      optional second reader (PaddleOCR-VL, vision models) + field-by-field comparison
   llm/             provider abstraction (any OpenAI-compatible endpoint)
-  storage/         local disk (S3-compatible can be added behind the same interface)
+  storage/         local disk or S3-compatible (Cloudflare R2)
 frontend/src/
   components/review/   the review screen
   components/upload/   drop zone + processing queue
@@ -240,6 +240,9 @@ All backend settings use the `DOCUMOUSE_` prefix. See [`backend/.env.example`](b
 | --- | --- | --- |
 | `DOCUMOUSE_DATABASE_URL` | `postgresql+psycopg://documouse:documouse@localhost:5432/documouse` | SQLAlchemy URL |
 | `DOCUMOUSE_STORAGE_DIR` | `./data` | Originals, page images, engine output |
+| `DOCUMOUSE_STORAGE_BACKEND` | `local` | `local` or `s3` (Cloudflare R2, any S3-compatible) |
+| `DOCUMOUSE_S3_ENDPOINT_URL` / `_ACCESS_KEY_ID` / `_SECRET_ACCESS_KEY` | – | S3/R2 credentials |
+| `DOCUMOUSE_S3_BUCKET` / `_S3_REGION` | `documouse` / `auto` | S3 bucket config |
 | `DOCUMOUSE_MAX_UPLOAD_MB` / `DOCUMOUSE_MAX_PAGES` | `25` / `20` | Upload limits |
 | `DOCUMOUSE_PDF_RENDER_DPI` | `200` | PDF page rendering resolution |
 | `DOCUMOUSE_OCR_PRESET` | `fast` | `fast` (mobile text models) or `accurate` |
@@ -252,9 +255,84 @@ All backend settings use the `DOCUMOUSE_` prefix. See [`backend/.env.example`](b
 | `DOCUMOUSE_SECOND_READER` | `none` | `paddleocr_vl` or `vision`: cross-check name, date and total with a second reader |
 | `DOCUMOUSE_PADDLEOCR_VL_URL` / `_TOKEN` | – | PaddleOCR-VL server (`…/v1`) or hosted API (`…/layout-parsing`) |
 | `DOCUMOUSE_VISION_PROVIDER` / `_MODEL` / `_API_KEY` / `_BASE_URL` | `gemini` | Vision model for `DOCUMOUSE_SECOND_READER=vision` |
+| `DOCUMOUSE_AUTH_TOKEN` | – | Shared access code; when set, all `/api/*` (except health) require `Bearer` auth |
+| `DOCUMOUSE_CORS_ORIGINS` | `["http://localhost:3000"]` | Allowed origins (needed when the frontend calls the backend directly) |
 | `PADDLE_PDX_MODEL_SOURCE` | `huggingface` | PaddleOCR model download host |
 | `PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK` | – | `True` skips the host check at startup once models are downloaded |
 | `DOCUMOUSE_API_URL` (frontend) | `http://localhost:8000` | Where Next.js proxies `/api` |
+| `NEXT_PUBLIC_DOCUMOUSE_UPLOAD_URL` (frontend) | – | Direct upload URL, bypasses Vercel's body-size limit |
+
+## Deploying (free tier)
+
+DocuMouse can run for free on:
+
+| Layer | Service | Free tier |
+| --- | --- | --- |
+| Frontend | [Vercel](https://vercel.com) | Hobby plan (Next.js) |
+| Backend | [Hugging Face Docker Space](https://huggingface.co/docs/hub/spaces-sdks-docker) | 2 vCPU, 16 GB RAM |
+| Database | [Neon](https://neon.tech) or [Supabase](https://supabase.com) | Free PostgreSQL |
+| Files | [Cloudflare R2](https://developers.cloudflare.com/r2/) | 10 GB, 10 M ops/mo |
+
+### 1. Database (Neon)
+
+Create a free Neon project, copy the connection string:
+
+```bash
+# backend Space settings or .env
+DOCUMOUSE_DATABASE_URL=postgresql+psycopg://user:pass@ep-xxx.region.aws.neon.tech/documouse?sslmode=require
+```
+
+### 2. File storage (Cloudflare R2)
+
+Create an R2 bucket named `documouse`, create an API token with read/write on that bucket:
+
+```bash
+DOCUMOUSE_STORAGE_BACKEND=s3
+DOCUMOUSE_S3_ENDPOINT_URL=https://<account-id>.r2.cloudflarestorage.com
+DOCUMOUSE_S3_ACCESS_KEY_ID=<key>
+DOCUMOUSE_S3_SECRET_ACCESS_KEY=<secret>
+DOCUMOUSE_S3_BUCKET=documouse
+```
+
+### 3. Backend (Hugging Face Space)
+
+Create a new Docker Space on Hugging Face. Push the `backend/` directory (the `Dockerfile` is included).
+PaddleOCR models are downloaded during the Docker build so cold starts are faster.
+
+Set these secrets in the Space settings:
+
+```bash
+DOCUMOUSE_DATABASE_URL=<neon URL>
+DOCUMOUSE_STORAGE_BACKEND=s3
+DOCUMOUSE_S3_ENDPOINT_URL=<r2 URL>
+DOCUMOUSE_S3_ACCESS_KEY_ID=<key>
+DOCUMOUSE_S3_SECRET_ACCESS_KEY=<secret>
+DOCUMOUSE_AUTH_TOKEN=<a random password>
+DOCUMOUSE_CORS_ORIGINS=["https://your-app.vercel.app"]
+```
+
+### 4. Frontend (Vercel)
+
+Import the repository on Vercel and set the **Root Directory** to `frontend/`.
+Set these environment variables in the Vercel project settings:
+
+```bash
+DOCUMOUSE_API_URL=https://<your-space>.hf.space
+DOCUMOUSE_AUTH_TOKEN=<same token as the backend>
+NEXT_PUBLIC_DOCUMOUSE_UPLOAD_URL=https://<your-space>.hf.space/api/documents   # optional, for large uploads
+```
+
+### 5. Second reader with Gemini (optional)
+
+```bash
+DOCUMOUSE_SECOND_READER=vision
+DOCUMOUSE_VISION_PROVIDER=gemini
+DOCUMOUSE_VISION_API_KEY=<key from Google AI Studio>
+```
+
+> **⚠️ Privacy warning:** Google's free-tier Terms of Service allow Google to use your API inputs
+> (including the document images you send) to improve their models. Do NOT send confidential client
+> documents through the free tier. See [Google's Gemini API terms](https://ai.google.dev/gemini-api/terms).
 
 ## Roadmap
 

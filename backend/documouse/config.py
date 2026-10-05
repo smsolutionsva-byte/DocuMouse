@@ -34,6 +34,17 @@ class Settings(BaseSettings):
 
     database_url: str = "postgresql+psycopg://documouse:documouse@localhost:5432/documouse"
     storage_dir: Path = Path("./data")
+
+    # S3-compatible object store (e.g. Cloudflare R2). When storage_backend is
+    # "s3", files go here instead of storage_dir.  R2's free tier covers 10 GB
+    # and 10 million class-B operations per month.
+    storage_backend: Literal["local", "s3"] = "local"
+    s3_endpoint_url: str | None = None
+    s3_access_key_id: str | None = None
+    s3_secret_access_key: str | None = None
+    s3_bucket: str = "documouse"
+    s3_region: str = "auto"
+
     max_upload_mb: int = 25
     max_pages: int = 20
     # Resolution used to turn PDF pages into images for the document engine
@@ -76,6 +87,10 @@ class Settings(BaseSettings):
     second_reader_timeout_seconds: float = 180.0
 
     cors_origins: list[str] = ["http://localhost:3000"]
+
+    # Shared-token authentication. When set, every /api/* request (except
+    # /api/health) must carry ``Authorization: Bearer <token>``.
+    auth_token: str | None = None
 
     @property
     def llm_enabled(self) -> bool:
