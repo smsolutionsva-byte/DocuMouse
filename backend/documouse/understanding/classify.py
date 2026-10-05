@@ -14,9 +14,11 @@ from ..processing.types import RawDocument
 
 # (pattern, weight, human explanation)
 _INVOICE_SIGNALS: list[tuple[str, float, str]] = [
-    (r"\btax\s+invoice\b", 4.0, "Says “Tax Invoice”"),
-    (r"\binvoice\b", 3.0, "Mentions “invoice”"),
-    (r"\b(invoice|inv|bill)\s*(no|number|#|num)\b", 3.0, "Has an invoice number"),
+    # Shops in GST countries print "Tax Invoice" and an invoice number on till receipts too, so
+    # these weigh less than the things only a business invoice has (bill-to, due date, terms...).
+    (r"\btax\s+invoice\b", 3.0, "Says “Tax Invoice”"),
+    (r"(?<!tax\s)(?<!tax)\binvoice\b", 2.0, "Mentions “invoice”"),
+    (r"\b(invoice|inv|bill)\s*(no|number|#|num)\b", 2.0, "Has an invoice number"),
     (r"\bbill(ed)?\s+to\b|\binvoice\s+to\b", 2.0, "Has a “Bill to” section"),
     (r"\bdue\s+date\b|\bpayment\s+due\b|\bdue\s+by\b", 2.0, "Has a due date"),
     (r"\bpayment\s+terms\b|\bnet\s+\d{1,2}\b", 1.5, "Mentions payment terms"),
@@ -27,15 +29,18 @@ _INVOICE_SIGNALS: list[tuple[str, float, str]] = [
 ]
 _RECEIPT_SIGNALS: list[tuple[str, float, str]] = [
     (r"\breceipt\b", 3.0, "Mentions “receipt”"),
-    (r"\b(cash|change\s+due|change)\b", 1.5, "Mentions cash or change"),
+    (r"\bsimplified\s*tax\s*invoice\b", 6.0, "Says “Simplified Tax Invoice” (a till receipt)"),
+    (r"\bcash\s*(bill|sales?|receipt)\b", 3.0, "Says “Cash Bill”"),
+    (r"\bround(ing)?\s*(adj|adjustment|off)?\b", 1.0, "Has a rounding adjustment"),
+    (r"\b(cash|change\s+due|change)\b", 2.0, "Mentions cash or change"),
     (r"\btender(ed)?\b", 2.0, "Shows the amount tendered"),
-    (r"\b(cashier|till|terminal|pos|register|store\s*#?|counter)\b", 1.5, "Mentions a cashier or till"),
+    (r"\b(cashier|till|terminal|pos|register|store\s*#?|counter)\b", 2.0, "Mentions a cashier or till"),
     (r"\b(visa|mastercard|amex|rupay|upi|debit|credit\s+card|card\s+no|card\s+ending)\b", 1.5, "Shows card or UPI payment"),
     (r"\b(auth(orization)?\s*code|approval\s*code|approved|txn\s*id|transaction\s*id|rrn)\b", 1.5, "Has a payment approval code"),
     (r"\bthank\s+you\b|\bvisit\s+again\b|\bcome\s+again\b", 1.0, "Says “thank you” / “visit again”"),
     (r"\b(table\s*(no|#)|server|guests?|covers)\b", 1.0, "Looks like a restaurant bill"),
     (r"\bamount\s+paid\b|\bpaid\b", 1.0, "Shows the amount paid"),
-    (r"\b([01]?\d|2[0-3]):[0-5]\d\b", 1.0, "Has a time of purchase"),
+    (r"(?<!\d)([01]?\d|2[0-3]):[0-5]\d(?!\d)", 1.5, "Has a time of purchase"),
 ]
 
 

@@ -57,9 +57,12 @@ INVOICE_FIELDS: tuple[FieldDef, ...] = (
                       "tax id", "tax no", "gstin")),
     FieldDef("total", "Total", "amount", "Amounts", required=True,
              hints=("grand total", "total amount", "amount due", "total due", "balance due", "invoice total",
-                    "net payable", "amount payable", "total payable", "total inr", "total"),
-             exclude=("sub total", "subtotal", "total tax", "total before tax", "total taxable", "total qty",
-                      "total quantity", "total items", "total discount")),
+                    "net payable", "amount payable", "total payable", "nett total", "net total", "rounded total",
+                    "total incl", "total inclusive", "total inr", "total"),
+             exclude=("sub total", "subtotal", "sub-total", "total tax", "total gst", "total before tax",
+                      "total taxable", "total qty", "total quantity", "total items", "total discount", "total excl",
+                      "included in total", "gst summary", "total paid", "amount paid", "tendered", "tax total",
+                      "gst total")),
 )
 
 RECEIPT_FIELDS: tuple[FieldDef, ...] = (
@@ -69,7 +72,7 @@ RECEIPT_FIELDS: tuple[FieldDef, ...] = (
     FieldDef("payment_method", "Paid with", "text", "Purchase",
              hints=("payment method", "payment mode", "paid by", "paid via", "tender", "mode of payment")),
     FieldDef("currency", "Currency", "currency", "Purchase"),
-    FieldDef("subtotal", "Subtotal", "amount", "Amounts", hints=("sub total", "subtotal", "net amount", "taxable")),
+    FieldDef("subtotal", "Subtotal", "amount", "Amounts", hints=("sub total", "subtotal", "taxable")),
     FieldDef("discount", "Discount", "amount", "Amounts", hints=("discount", "savings", "you saved")),
     FieldDef("cgst", "CGST", "amount", "Amounts", hints=("cgst", "central gst", "central tax")),
     FieldDef("sgst", "SGST", "amount", "Amounts", hints=("sgst", "utgst", "state gst", "state tax")),
@@ -78,10 +81,13 @@ RECEIPT_FIELDS: tuple[FieldDef, ...] = (
              hints=("total tax", "tax", "vat", "gst", "sales tax"),
              exclude=("cgst", "sgst", "igst", "utgst", "before tax", "taxable", "incl", "excl", "tax id", "gstin")),
     FieldDef("total", "Total", "amount", "Amounts", required=True,
-             hints=("grand total", "total amount", "amount paid", "total paid", "net payable", "total due",
-                    "balance due", "total"),
-             exclude=("sub total", "subtotal", "total tax", "total qty", "total items", "total savings",
-                      "total discount")),
+             # Not "amount paid"/"total paid": on cash receipts that's the cash handed over.
+             hints=("grand total", "total amount", "net payable", "total due", "balance due", "nett total",
+                    "net total", "rounded total", "total incl", "total inclusive", "total sales", "total payable",
+                    "net amount", "nett amount", "net amt", "total amt", "total"),
+             exclude=("sub total", "subtotal", "sub-total", "total tax", "total gst", "total qty", "total quantity",
+                      "total items", "total savings", "total discount", "total excl", "included in total",
+                      "gst summary", "total paid", "amount paid", "tendered", "tax total", "gst total")),
 )
 
 SCHEMAS: dict[str, tuple[FieldDef, ...]] = {

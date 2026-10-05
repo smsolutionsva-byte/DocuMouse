@@ -135,6 +135,9 @@ def validate(data: DocumentData, *, today: date | None = None) -> Validation:
         checks.append(_total_check(total, subtotal, discount, cgst, sgst, igst, tax, items_sum, money))
         if total < 0:
             reasons["total"].append("The total is negative.")
+        biggest = _largest_item_amount(data.line_items())
+        if biggest is not None and total + ROUNDING < biggest:
+            reasons["total"].append(f"The total is smaller than one of the items ({money(biggest)}).")
 
     if cgst is not None and sgst is not None:
         if abs(cgst - sgst) <= CENT:
@@ -292,6 +295,17 @@ def _check_line_items(table: TableData | None, rows: dict, money) -> Decimal | N
     if not item_rows or not all_amounts:
         return None
     return total
+
+
+def _largest_item_amount(table: TableData | None) -> Decimal | None:
+    if table is None:
+        return None
+    amount_col = next((c.id for c in table.columns if c.role == "amount"), None)
+    if amount_col is None:
+        return None
+    values = [parse_amount(r.cells.get(amount_col, "")) for r in table.rows if r.kind == "item"]
+    values = [v for v in values if v is not None]
+    return max(values) if values else None
 
 
 def _plain(d: Decimal) -> str:

@@ -19,7 +19,10 @@ export function FieldsPanel({ animateIn }: { animateIn: boolean }) {
   return (
     <div className="space-y-6">
       {[...groups.entries()].map(([group, fields]) => {
-        const visible = fields.filter((f) => validation.fields[f.key]?.status !== "empty" || revealed.has(f.key));
+        // Empty optional fields fold away, unless DocuMouse has a suggestion for them.
+        const visible = fields.filter(
+          (f) => validation.fields[f.key]?.status !== "empty" || revealed.has(f.key) || data.fields[f.key]?.suggestion,
+        );
         const hidden = fields.filter((f) => !visible.includes(f));
         const checks = group === "Amounts" ? validation.checks : [];
         return (

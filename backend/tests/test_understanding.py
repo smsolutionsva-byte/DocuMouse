@@ -123,3 +123,62 @@ def test_llm_values_must_be_grounded():
     merged = reconcile(rule, LLMField("igst", None, "1234.00", False, []))
     assert merged.value is None  # never used as a value
     assert merged.suggestion is not None and merged.suggestion.value == "1234.00"
+
+
+# ---------------------------------------------------------------- real-world receipt quirks (from SROIE)
+
+from documouse.processing.types import PageInfo, RawDocument, TextLine  # noqa: E402
+from documouse.understanding.parsing import detect_currency  # noqa: E402
+
+
+def _receipt(rows):
+    lines = [TextLine(id=f"p0-l{i}", page=0, text=t, bbox=[x0, y, x1, y + 0.015], confidence=0.97)
+             for i, (t, x0, x1, y) in enumerate(rows)]
+    return RawDocument(engine="test-double", pages=[PageInfo(index=0, width=600, height=1600)], lines=lines)
+
+
+def test_dates_survive_ocr_glue_and_reject_product_codes():
+    assert [d.value.isoformat() for d in find_dates("25/12/20188:13:39PM")] == ["2018-12-25"]
+    assert [d.value.isoformat() for d in find_dates("Date05/02/2018")] == ["2018-02-05"]
+    assert find_dates("MG12/3-32 22/3-24") == []  # mixed separators: a product code
+    assert find_dates("20180428", allow_compact=True)[0].value == date(2018, 4, 28)
+    assert find_dates("20180428") == []  # bare 8-digit numbers aren't dates without a label
+
+
+def test_currency_from_local_abbreviations_not_capitalised_words():
+    assert detect_currency("TOTAL RM9.00\nAMOUNT (RM)")[0] == "MYR"
+    assert detect_currency("TRY OUR NEW BURGER 9.00")[0] is None
+
+
+def test_rounded_total_and_tendered_cash():
+    raw = _receipt([
+        ("SEAFOOD RESTAURANT SDN BHD", 0.2, 0.8, 0.05),
+        ("Total (Inclusive of GST):", 0.1, 0.5, 0.60), ("65.72", 0.75, 0.9, 0.60),
+        ("Rounding Adj", 0.1, 0.4, 0.62), ("-0.02", 0.75, 0.9, 0.62),
+        ("TOTAL:", 0.1, 0.3, 0.64), ("65.70", 0.75, 0.9, 0.64),
+        ("Total Paid", 0.1, 0.3, 0.66), ("100.00", 0.75, 0.9, 0.66),
+        ("CHANGE", 0.1, 0.3, 0.68), ("34.30", 0.75, 0.9, 0.68),
+    ])
+    assert extract(raw, "receipt").fields["total"].value == "65.70"
+
+
+def test_rounding_line_carries_the_rounded_total_and_ocr_typos_in_labels():
+    raw = _receipt([
+        ("CHECKERS HYPERMARKET SDN BHD", 0.2, 0.8, 0.05),
+        ("TOTAL", 0.1, 0.3, 0.60), ("19.99", 0.75, 0.9, 0.60),
+        ("Rounding Adj", 0.1, 0.4, 0.62), ("0.01", 0.75, 0.9, 0.62),
+        ("Rounding", 0.1, 0.3, 0.64), ("20.00", 0.75, 0.9, 0.64),
+    ])
+    assert extract(raw, "receipt").fields["total"].value == "20.00"
+    typo = _receipt([("SHOP SDN BHD", 0.2, 0.8, 0.05), ("Grand TotaiRM21.85", 0.3, 0.9, 0.6)])
+    assert extract(typo, "receipt").fields["total"].value == "21.85"
+
+
+def test_merchant_skips_addresses_and_strips_registration_numbers():
+    raw = _receipt([
+        ("LOT 2110&2111JALAN PERMAS UTARA", 0.1, 0.9, 0.05),
+        ("TAX", 0.4, 0.6, 0.08),
+    ])
+    assert extract(raw, "receipt").fields["merchant"].value is None  # better than an address
+    raw = _receipt([("MOONLIGHT CAKE HOUSE SDN BHD 862725-U", 0.1, 0.9, 0.05)])
+    assert extract(raw, "receipt").fields["merchant"].value == "MOONLIGHT CAKE HOUSE SDN BHD"

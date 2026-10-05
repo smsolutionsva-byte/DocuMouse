@@ -28,6 +28,33 @@ def extract(raw: RawDocument, doc_type: str, *, llm: LLMProvider | None = None) 
         table.id = f"t{i}"
     data = DocumentData(doc_type=doc_type, fields=fields, tables=tables)
     data.next_table_id = len(tables) + 1
+    return demote_unsure_optional_amounts(data)
+
+
+# Optional amounts that DocuMouse fills in only when it's reasonably sure.
+_OPTIONAL_AMOUNTS = ("subtotal", "discount", "tax", "cgst", "sgst", "igst")
+UNSURE = 0.8
+
+
+def demote_unsure_optional_amounts(data: DocumentData) -> DocumentData:
+    """An optional amount read with low confidence, and not confirmed by the arithmetic,
+    is offered as a suggestion instead of being filled in.
+
+    A wrong tax value would otherwise also make a correct total look wrong. Required
+    fields are never demoted: they stay visible with their warning.
+    """
+    from ..validation import validate
+
+    v = validate(data)
+    confirmed = {key for c in v.checks if c.status == "pass" for key in c.fields}
+    for key in _OPTIONAL_AMOUNTS:
+        f = data.fields.get(key)
+        if f is None or f.value is None or f.confirmed or key in confirmed or f.confidence >= UNSURE:
+            continue
+        data.fields[key] = FieldValue(
+            suggestion=Suggestion(value=f.value, reason="DocuMouse found this, but isn't sure it's right."),
+            source=f.source,
+        )
     return data
 
 

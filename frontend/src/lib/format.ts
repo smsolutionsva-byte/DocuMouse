@@ -1,4 +1,4 @@
-const SYMBOLS: Record<string, string> = { INR: "₹", USD: "$", EUR: "€", GBP: "£", JPY: "¥" };
+const SYMBOLS: Record<string, string> = { INR: "₹", USD: "$", EUR: "€", GBP: "£", JPY: "¥", MYR: "RM ", SGD: "S$" };
 
 export function currencySymbol(code: string | null | undefined): string {
   if (!code) return "";

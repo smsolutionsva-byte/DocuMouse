@@ -31,12 +31,12 @@ CURRENCY_CODES = {
     "HKD", "SAR", "ZAR", "MYR", "IDR", "THB", "PHP", "KRW", "BRL", "MXN", "SEK", "NOK",
     "DKK", "PLN", "TRY", "RUB", "VND", "BDT", "LKR", "NPR", "PKR", "KES", "NGN", "EGP",
 }
-CURRENCY_DISPLAY = {"INR": "₹", "USD": "$", "EUR": "€", "GBP": "£", "JPY": "¥"}
+CURRENCY_DISPLAY = {"INR": "₹", "USD": "$", "EUR": "€", "GBP": "£", "JPY": "¥", "MYR": "RM ", "SGD": "S$"}
 
 _AMOUNT_RE = re.compile(
     r"(?<![\w.,])"
     r"(?P<neg>[-−(])?\s*"
-    r"(?P<cur>₹|€|£|\$|¥|Rs\.?|INR|USD|EUR|GBP)?\s*"
+    r"(?P<cur>₹|€|£|S\$|A\$|\$|¥|Rs\.?|RM|INR|USD|EUR|GBP|MYR|SGD)?\s*"
     r"(?P<num>\d{1,3}(?:[,.\s]\d{2,3})+(?:[.,]\d{1,2})?|\d+(?:[.,]\d{1,2})?)"
     # Not part of a longer number ("2" out of "2.5"), and not a percentage ("9%", "2.5 %").
     r"(?![\w%]|[.,]\d|\s*%)",
@@ -52,7 +52,7 @@ def parse_amount(text: str | None) -> Decimal | None:
     if not s:
         return None
     negative = s.startswith(("-", "−", "(")) or s.endswith(("-", ")"))
-    s = re.sub(r"(?i)\b(rs|inr|usd|eur|gbp|aed|sgd|aud|cad)\b\.?", "", s)
+    s = re.sub(r"(?i)(rs|rm|inr|usd|eur|gbp|aed|sgd|aud|cad|myr)\.?", "", s)
     s = re.sub(r"[^\d.,]", "", s)
     if not s or not re.search(r"\d", s):
         return None
@@ -141,27 +141,47 @@ def currency_from_token(token: str) -> str | None:
         return CURRENCY_SYMBOLS[token.strip()]
     if t == "RS":
         return "INR"
+    if t == "RM":
+        return "MYR"
+    if t in ("S$", "A$"):
+        return "SGD" if t == "S$" else "AUD"
     if t in CURRENCY_CODES:
         return t
     return None
 
 
+# Local abbreviations printed next to amounts or as a column unit, e.g. "RM 9.00", "AMOUNT (RM)".
+_LOCAL_CURRENCY = [
+    (re.compile(r"\bRM\s?\d|[(（]\s*RM\s*[)）]|\bRM\b(?=\s*$)", re.M), "MYR"),
+    (re.compile(r"\bS\$\s?\d"), "SGD"),
+    (re.compile(r"\bA\$\s?\d"), "AUD"),
+    (re.compile(r"\bRs\.?\s*\d", re.I), "INR"),
+]
+
+
 def detect_currency(text: str) -> tuple[str | None, float, str | None]:
     """Return ``(code, confidence, evidence)`` from the whole document text."""
-    for code in CURRENCY_CODES:
-        if re.search(rf"\b{code}\b", text):
-            return code, 0.95, code
     counts: dict[str, int] = {}
+    # ISO codes only count next to an amount or as a unit ("USD 20", "20.00 EUR", "(SGD)"):
+    # receipts are often all caps, so a bare "TRY" or "CAD" is usually just a word.
+    for code in CURRENCY_CODES:
+        n = len(re.findall(rf"\b{code}\s?[\d(]|\d\s?{code}\b|\({code}\)|\b{code}\s*:", text))
+        if n:
+            counts[code] = counts.get(code, 0) + 2 * n
+    for pattern, code in _LOCAL_CURRENCY:
+        n = len(pattern.findall(text))
+        if n:
+            counts[code] = counts.get(code, 0) + 2 * n
     for symbol, code in CURRENCY_SYMBOLS.items():
+        if symbol == "$" and re.search(r"[SA]\$", text):
+            continue
         n = text.count(symbol)
         if n:
             counts[code] = counts.get(code, 0) + n
-    if re.search(r"\bRs\.?\s*\d", text, re.IGNORECASE):
-        counts["INR"] = counts.get("INR", 0) + 2
     if counts:
         code = max(counts, key=counts.__getitem__)
-        # "$" is shared by many currencies; only trust it moderately.
-        confidence = 0.7 if code == "USD" else 0.9
+        # A bare "$" is shared by many currencies; only trust it moderately.
+        confidence = 0.7 if code == "USD" and "USD" not in text else 0.9
         return code, confidence, code
     if re.search(r"\b(GSTIN|CGST|SGST|IGST)\b", text, re.IGNORECASE):
         return "INR", 0.75, "GST"
@@ -181,14 +201,20 @@ _MONTHS = {
     )
     for m in names
 }
-_MONTH_RE = r"(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|sept?(?:ember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)"
+_MONTH_RE = r"(?P<mon>jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|sept?(?:ember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)"
 
 _DATE_PATTERNS = [
-    ("iso", re.compile(r"\b(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})\b")),
-    ("numeric", re.compile(r"\b(\d{1,2})[-/.](\d{1,2})[-/.](\d{4}|\d{2})\b")),
-    ("d_mon_y", re.compile(rf"\b(\d{{1,2}})(?:st|nd|rd|th)?[\s\-/.,]*{_MONTH_RE}[\s\-/.,']*(\d{{4}}|\d{{2}})\b", re.I)),
-    ("mon_d_y", re.compile(rf"\b{_MONTH_RE}[\s\-/.]*(\d{{1,2}})(?:st|nd|rd|th)?[\s,\-/.']*(\d{{4}}|\d{{2}})\b", re.I)),
+    ("iso", re.compile(r"(?<!\d)(?P<y>(?:19|20)\d{2})(?P<s>[-/.])(?P<m>\d{1,2})(?P=s)(?P<d>\d{1,2})(?!\d)")),
+    # Day/month/year with the SAME separator twice ("22/3-24" is a product code, not a date).
+    # (?<!\d) rather than \b so a label glued on still works ("Date05/02/2018").
+    ("numeric", re.compile(r"(?<!\d)(?P<a>\d{1,2})(?P<s>[-/.])(?P<b>\d{1,2})(?P=s)(?P<y>(?:19|20)\d{2}|\d{2})(?!\d)")),
+    # OCR often drops the space before a time: "25/12/20188:13:39PM", "21/02/1811:19".
+    ("numeric", re.compile(r"(?<!\d)(?P<a>\d{1,2})(?P<s>[-/.])(?P<b>\d{1,2})(?P=s)(?P<y>(?:19|20)\d{2}|\d{2})(?=\d{1,2}[:.]\d{2})")),
+    ("d_mon_y", re.compile(rf"(?<![\d])(?P<d>\d{{1,2}})(?:st|nd|rd|th)?[\s\-/.,]*{_MONTH_RE}[\s\-/.,']*(?P<y>(?:19|20)\d{{2}}|\d{{2}})(?!\d)", re.I)),
+    ("mon_d_y", re.compile(rf"\b{_MONTH_RE}[\s\-/.]*(?P<d>\d{{1,2}})(?:st|nd|rd|th)?[\s,\-/.']*(?P<y>(?:19|20)\d{{2}}|\d{{2}})(?!\d)", re.I)),
 ]
+# 20180428: only trusted right next to a "date" label (it could be any 8-digit number).
+_COMPACT_DATE = re.compile(r"(?<!\d)(?P<y>20\d{2})(?P<m>0[1-9]|1[0-2])(?P<d>0[1-9]|[12]\d|3[01])(?!\d)")
 
 
 @dataclass
@@ -212,26 +238,25 @@ def _make(y: int, m: int, d: int) -> date | None:
         return None
 
 
-def find_dates(text: str, *, dayfirst: bool = True) -> list[DateMatch]:
+def find_dates(text: str, *, dayfirst: bool = True, allow_compact: bool = False) -> list[DateMatch]:
     out: list[DateMatch] = []
     taken: list[tuple[int, int]] = []
-    for kind, pattern in _DATE_PATTERNS:
+    patterns = list(_DATE_PATTERNS) + ([("compact", _COMPACT_DATE)] if allow_compact else [])
+    for kind, pattern in patterns:
         for m in pattern.finditer(text):
             if any(m.start() < e and s < m.end() for s, e in taken):
                 continue
             ambiguous = False
-            if kind == "iso":
-                value = _make(int(m.group(1)), int(m.group(2)), int(m.group(3)))
+            if kind in ("iso", "compact"):
+                value = _make(int(m.group("y")), int(m.group("m")), int(m.group("d")))
             elif kind == "numeric":
-                a, b, y = int(m.group(1)), int(m.group(2)), _year(m.group(3))
+                a, b, y = int(m.group("a")), int(m.group("b")), _year(m.group("y"))
                 first = _make(y, b, a) if dayfirst else _make(y, a, b)
                 second = _make(y, a, b) if dayfirst else _make(y, b, a)
                 value = first or second
                 ambiguous = bool(first and second and a != b)
-            elif kind == "d_mon_y":
-                value = _make(_year(m.group(3)), _MONTHS[m.group(2).lower()[:3]], int(m.group(1)))
             else:
-                value = _make(_year(m.group(3)), _MONTHS[m.group(1).lower()[:3]], int(m.group(2)))
+                value = _make(_year(m.group("y")), _MONTHS[m.group("mon").lower()[:3]], int(m.group("d")))
             if value is None or not (1990 <= value.year <= 2100):
                 continue
             taken.append((m.start(), m.end()))
@@ -244,17 +269,19 @@ DAYFIRST_CURRENCIES = {
     "INR", "GBP", "EUR", "AUD", "NZD", "ZAR", "SGD", "AED", "SAR", "HKD", "MYR", "IDR", "THB",
     "BRL", "MXN", "TRY", "RUB", "VND", "BDT", "LKR", "NPR", "PKR", "KES", "NGN", "EGP", "CHF",
 }
-_NUMERIC_DATE_RE = re.compile(r"\b(\d{1,2})[-/.](\d{1,2})[-/.](\d{4}|\d{2})\b")
+_NUMERIC_DATE_RE = re.compile(r"(?<!\d)(\d{1,2})([-/.])(\d{1,2})\2((?:19|20)\d{2}|\d{2})(?!\d)")
 
 
 def numeric_date_order(text: str) -> str | None:
     """'dayfirst' / 'monthfirst' if some date on the page settles it (e.g. 25/09/2026), else None."""
     day, month = False, False
     for m in _NUMERIC_DATE_RE.finditer(text):
-        a, b = int(m.group(1)), int(m.group(2))
-        if a > 12 and b <= 12:
+        a, b, sep, year = int(m.group(1)), int(m.group(3)), m.group(2), m.group(4)
+        if sep == "." and len(year) != 4:
+            continue  # "2.90.00" is a garbled amount, not a date
+        if 13 <= a <= 31 and 1 <= b <= 12:
             day = True
-        elif b > 12 and a <= 12:
+        elif 13 <= b <= 31 and 1 <= a <= 12:
             month = True
     if day == month:
         return None
