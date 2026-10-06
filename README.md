@@ -262,23 +262,42 @@ All backend settings use the `DOCUMOUSE_` prefix. See [`backend/.env.example`](b
 | `DOCUMOUSE_API_URL` (frontend) | `http://localhost:8000` | Where Next.js proxies `/api` |
 | `NEXT_PUBLIC_DOCUMOUSE_UPLOAD_URL` (frontend) | – | Direct upload URL, bypasses Vercel's body-size limit |
 
-## Deploying (free tier)
+## Deploying
 
-DocuMouse can run for free on:
+For a private pilot on one Oracle Always Free server, see the
+[single-server setup guide](docs/hosting.md). It includes the website, OCR,
+PostgreSQL and HTTPS, with deployment files in `deploy/`. Free server capacity
+is not guaranteed. The current shared-code login does not isolate customers'
+documents; customer accounts and ownership checks are needed before a shared
+paid launch.
 
-| Layer | Service | Free tier |
+### Split hosting
+
+The split setup below has free database and file-storage allowances. Vercel
+Hobby is restricted to personal, noncommercial use; a commercial frontend needs
+a suitable plan. The backend needs a container host with enough memory for OCR
+and outbound access to your PostgreSQL server.
+
+The previous Hugging Face + Neon recommendation needs a different database
+connection design: Spaces document outbound ports 80, 443 and 8080 only, while
+this app connects directly to PostgreSQL on port 5432. Docker Spaces also now
+require a paid plan to create. See the
+[Spaces networking and plan requirements](https://huggingface.co/docs/hub/spaces-overview)
+and [Vercel rules](https://vercel.com/docs/plans/hobby).
+
+| Layer | Service | Allowance / requirement |
 | --- | --- | --- |
-| Frontend | [Vercel](https://vercel.com) | Hobby plan (Next.js) |
-| Backend | [Hugging Face Docker Space](https://huggingface.co/docs/hub/spaces-sdks-docker) | 2 vCPU, 16 GB RAM |
+| Frontend | [Vercel](https://vercel.com) | Hobby for personal use; paid plan for commercial use |
+| Backend | Linux container host | About 8 GB RAM for OCR; PostgreSQL network access |
 | Database | [Neon](https://neon.tech) or [Supabase](https://supabase.com) | Free PostgreSQL |
-| Files | [Cloudflare R2](https://developers.cloudflare.com/r2/) | 10 GB, 10 M ops/mo |
+| Files | [Cloudflare R2](https://developers.cloudflare.com/r2/) | 10 GB, 1 M Class A and 10 M Class B operations/month |
 
 ### 1. Database (Neon)
 
 Create a free Neon project, copy the connection string:
 
 ```bash
-# backend Space settings or .env
+# backend host settings or .env
 DOCUMOUSE_DATABASE_URL=postgresql+psycopg://user:pass@ep-xxx.region.aws.neon.tech/documouse?sslmode=require
 ```
 
@@ -294,12 +313,14 @@ DOCUMOUSE_S3_SECRET_ACCESS_KEY=<secret>
 DOCUMOUSE_S3_BUCKET=documouse
 ```
 
-### 3. Backend (Hugging Face Space)
+### 3. Backend (container host)
 
-Create a new Docker Space on Hugging Face. Push the `backend/` directory (the `Dockerfile` is included).
-PaddleOCR models are downloaded during the Docker build so cold starts are faster.
+Deploy the included `backend/Dockerfile` using `backend/` as its build context.
+The API listens on port 7860; configure your host to provide a public HTTPS URL.
+Model preloading is attempted during the build. Missing models download on the
+first OCR request.
 
-Set these secrets in the Space settings:
+Set these environment variables on the backend host:
 
 ```bash
 DOCUMOUSE_DATABASE_URL=<neon URL>
@@ -307,6 +328,8 @@ DOCUMOUSE_STORAGE_BACKEND=s3
 DOCUMOUSE_S3_ENDPOINT_URL=<r2 URL>
 DOCUMOUSE_S3_ACCESS_KEY_ID=<key>
 DOCUMOUSE_S3_SECRET_ACCESS_KEY=<secret>
+DOCUMOUSE_S3_BUCKET=documouse
+DOCUMOUSE_S3_REGION=auto
 DOCUMOUSE_AUTH_TOKEN=<a random password>
 DOCUMOUSE_CORS_ORIGINS=["https://your-app.vercel.app"]
 ```
@@ -317,9 +340,9 @@ Import the repository on Vercel and set the **Root Directory** to `frontend/`.
 Set these environment variables in the Vercel project settings:
 
 ```bash
-DOCUMOUSE_API_URL=https://<your-space>.hf.space
+DOCUMOUSE_API_URL=https://api.example.com
 DOCUMOUSE_AUTH_TOKEN=<same token as the backend>
-NEXT_PUBLIC_DOCUMOUSE_UPLOAD_URL=https://<your-space>.hf.space/api/documents   # optional, for large uploads
+NEXT_PUBLIC_DOCUMOUSE_UPLOAD_URL=https://api.example.com/api/documents
 ```
 
 ### 5. Second reader with Gemini (optional)

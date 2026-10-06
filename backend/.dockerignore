@@ -1,9 +1,12 @@
+.env*
+.venv
+venv
+data
 __pycache__
+**/__pycache__
 *.pyc
 *.egg-info
-.env
-data/
-tests/
-eval/
 .pytest_cache
 .mypy_cache
+tests
+eval

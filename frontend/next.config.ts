@@ -5,7 +5,12 @@ import type { NextConfig } from "next";
 const apiUrl = process.env.DOCUMOUSE_API_URL ?? "http://localhost:8000";
 
 const nextConfig: NextConfig = {
+  output: "standalone",
   poweredByHeader: false,
+  experimental: {
+    // Allow the backend's 25 MB uploads plus multipart form overhead.
+    proxyClientMaxBodySize: "26mb",
+  },
   async rewrites() {
     return [{ source: "/api/:path*", destination: `${apiUrl}/api/:path*` }];
   },

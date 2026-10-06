@@ -12,6 +12,7 @@ backend/.env
 backend/data/
 *.db
 .env
+deploy/backups/
 
 # Editors / OS
 .DS_Store

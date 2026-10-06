@@ -1,0 +1,82 @@
+# Single-server private pilot. Run from the repository root with:
+# sudo docker compose --env-file deploy/.env -f deploy/compose.yml up -d --build
+name: documouse
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: documouse
+      POSTGRES_DB: documouse
+      POSTGRES_PASSWORD: ${DOCUMOUSE_DB_PASSWORD:?Set DOCUMOUSE_DB_PASSWORD in deploy/.env}
+    volumes:
+      - postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U documouse -d documouse"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ../backend
+    restart: unless-stopped
+    environment:
+      DOCUMOUSE_DATABASE_URL: postgresql+psycopg://documouse:${DOCUMOUSE_DB_PASSWORD:?Set DOCUMOUSE_DB_PASSWORD in deploy/.env}@postgres:5432/documouse
+      DOCUMOUSE_AUTH_TOKEN: ${DOCUMOUSE_AUTH_TOKEN:?Set DOCUMOUSE_AUTH_TOKEN in deploy/.env}
+      DOCUMOUSE_STORAGE_DIR: /app/data
+      DOCUMOUSE_STORAGE_BACKEND: local
+      DOCUMOUSE_OCR_PRESET: fast
+      DOCUMOUSE_OCR_DEVICE: cpu
+      DOCUMOUSE_PROCESSING_WORKERS: "1"
+      DOCUMOUSE_LLM_PROVIDER: none
+      DOCUMOUSE_SECOND_READER: none
+      DOCUMOUSE_CORS_ORIGINS: "[]"
+    volumes:
+      - documents:/app/data
+      - models:/home/user/.paddlex
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:7860/api/health', timeout=5).read()"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+    stop_grace_period: 60s
+
+  frontend:
+    build:
+      context: ../frontend
+      args:
+        DOCUMOUSE_API_URL: http://backend:7860
+    restart: unless-stopped
+    environment:
+      DOCUMOUSE_AUTH_TOKEN: ${DOCUMOUSE_AUTH_TOKEN:?Set DOCUMOUSE_AUTH_TOKEN in deploy/.env}
+    depends_on:
+      backend:
+        condition: service_healthy
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    environment:
+      DOCUMOUSE_HOST: ${DOCUMOUSE_HOST:?Set DOCUMOUSE_HOST in deploy/.env}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - certificates:/data
+      - caddy_config:/config
+    depends_on:
+      - frontend
+
+volumes:
+  postgres:
+  documents:
+  models:
+  certificates:
+  caddy_config:

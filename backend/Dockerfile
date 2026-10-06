@@ -33,10 +33,12 @@ RUN if [ -d "/root/.paddlex" ]; then \
     fi
 
 # Set permissions for the app directory
-RUN chown -R user:user /app
+RUN mkdir -p /app/data /home/user/.paddlex && \
+    chown -R user:user /app && chown user:user /home/user/.paddlex
 
 # Switch to the non-root user
 USER user
+ENV HOME=/home/user
 
 # Expose the default port for HF Spaces
 EXPOSE 7860
