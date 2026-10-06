@@ -4,12 +4,19 @@ This setup runs the website, Python API, PaddleOCR, PostgreSQL and HTTPS proxy o
 one server. It preserves the existing OCR engine and processes one document at
 a time. It does not require Vercel, Hugging Face, Neon or R2 accounts.
 
+If account verification is unavailable, use the [PC test-site launcher](pc-test-site.md)
+for a temporary password-protected preview with no payment card.
+
 **Use this for your private pilot.** DocuMouse currently has one shared access
 code and one document library. Customer accounts, document ownership, usage
 quotas and payment handling must be added before opening a shared paid service.
 Hosting this version does not create those SaaS features.
 
 ## 1. Get a free server
+
+For agent-assisted setup, install the official Oracle MCP server and CLI using
+the [Oracle tools helper](oracle-tools.md). The tools still require a completed
+Oracle account and a browser-authenticated session.
 
 Sign up at [Oracle Cloud Free Tier](https://signup.cloud.oracle.com/). Oracle
 requires a supported credit/debit card for identity verification and may place

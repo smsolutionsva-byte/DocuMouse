@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
+
 from sqlalchemy.orm import Session
 
 from .. import versioning
@@ -10,6 +12,15 @@ from ..models import Document, DocumentVersion
 from ..pipeline_constants import CONFIDENT_CLASSIFICATION, MISMATCH_CONFIDENCE
 from ..understanding.schema import DOC_TYPE_LABELS, schema_for
 from ..validation import validate
+
+
+def _utc_iso(value: datetime | None) -> str | None:
+    if value is None:
+        return None
+    # SQLite removes timezone information from the UTC timestamps we store.
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=timezone.utc)
+    return value.astimezone(timezone.utc).isoformat()
 
 
 def summary(doc: Document) -> dict:
@@ -32,8 +43,8 @@ def summary(doc: Document) -> dict:
         "edited_after_approval": bool(doc.approved_version_id and not approved),
         "duplicate_of": doc.duplicate_of or [],
         "page_count": len(doc.pages or []),
-        "created_at": doc.created_at.isoformat() if doc.created_at else None,
-        "processed_at": doc.processed_at.isoformat() if doc.processed_at else None,
+        "created_at": _utc_iso(doc.created_at),
+        "processed_at": _utc_iso(doc.processed_at),
     }
 
 
@@ -74,7 +85,7 @@ def version_json(v: DocumentVersion, *, active: bool, head: bool) -> dict:
         "parent_id": v.parent_id,
         "author": v.author,
         "message": v.message,
-        "created_at": v.created_at.isoformat() if v.created_at else None,
+        "created_at": _utc_iso(v.created_at),
         "active": active,
         "head": head,
     }

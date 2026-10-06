@@ -1,3 +1,5 @@
+from datetime import datetime, timedelta, timezone
+
 from .conftest import png_bytes
 
 
@@ -7,6 +9,20 @@ def upload(client, content=None, name="invoice_1042.png", doc_type=None):
     r = client.post("/api/documents", files=files, data=data)
     assert r.status_code == 201, r.text
     return r.json()["id"]
+
+
+def test_persisted_document_and_history_timestamps_preserve_utc(client):
+    before = datetime.now(timezone.utc)
+    doc_id = upload(client)
+    doc = client.get(f"/api/documents/{doc_id}").json()
+    history = client.get(f"/api/documents/{doc_id}/versions").json()["versions"]
+    listed = client.get("/api/documents").json()["documents"][0]
+    after = datetime.now(timezone.utc)
+
+    for value in (doc["created_at"], doc["processed_at"], listed["created_at"], history[0]["created_at"]):
+        stamp = datetime.fromisoformat(value)
+        assert stamp.utcoffset() == timedelta(0)
+        assert before <= stamp <= after
 
 
 def test_upload_process_review_edit_undo_export(client):

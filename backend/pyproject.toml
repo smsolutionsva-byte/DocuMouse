@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "documouse"
 version = "0.1.0"
 description = "Drop your documents in. DocuMouse figures them out."
-readme = "../README.md"
+readme = "README.md"
 license = { text = "MIT" }
 requires-python = ">=3.10,<3.14"
 dependencies = [
@@ -37,6 +37,8 @@ dev = [
   "pytest>=8",
   "reportlab>=4",
 ]
+# The Windows PC test-site launcher tracks its own background processes.
+hosting = ["psutil>=7,<8"]
 # Benchmarks in eval/ (SROIE images ship as Parquet on Hugging Face).
 eval = [
   "pyarrow>=15",

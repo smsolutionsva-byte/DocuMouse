@@ -264,6 +264,11 @@ All backend settings use the `DOCUMOUSE_` prefix. See [`backend/.env.example`](b
 
 ## Deploying
 
+For a temporary test website with **no card or cloud account**, use the
+[Windows PC launcher](docs/pc-test-site.md). It runs the app and OCR locally and
+opens a password-protected Cloudflare HTTPS link. The PC must stay awake, and
+the link changes on restart. This is a private pilot, not a shared paid service.
+
 For a private pilot on one Oracle Always Free server, see the
 [single-server setup guide](docs/hosting.md). It includes the website, OCR,
 PostgreSQL and HTTPS, with deployment files in `deploy/`. Free server capacity
